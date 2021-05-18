@@ -215,7 +215,7 @@ def get_dimension_folder(parameters):
 def get_segmentation_file_path(parameters):
     dim_folder = get_dimension_folder(parameters)
     if parameters['segmentation_method'] == 'ilastik':
-        return parameters['data_folder'] + '04_Processed_Data/03_Ilastik/' + dim_folder
+        return parameters['data_folder'] + '04_Processed_Data/03_Ilastik/' + dim_folder + '03_Probability_Maps/'
 
     elif parameters['segmentation_method'] == 'Thresholding':
         return parameters['data_folder'] + '04_Processed_Data/02_Threshold/' + dim_folder
@@ -227,27 +227,93 @@ def get_segmentation_file_path(parameters):
         print('Segmentation method ' + parameters['segmentation_method'] + 'is not specified!')
 
 
-def load_mask(parameters, file_name):
+def load_mask(parameters, mask_name):
     file_path = get_segmentation_file_path(parameters)
-
-    return
-
-
-def calculate_tumor_macrophage_distance(parameters, key_file):
-    return
+    if os.path.exists(file_path + mask_name):
+        return np.array(io.imread(file_path + mask_name))
+    else:
+        print(file_path + mask_name + ' does not exist!')
 
 
-def tumor_volume(parameters, key_file):
-    return
+def calculate_tumor_macrophage_distance(tumor_mask, macrophage_mask):
+    tumor_distance = scipy.ndimage.morphology.distance_transform_edt(np.invert(tumor_mask[:, :, :]))
+    return np.mean(tumor_distance[macrophage_mask.flatten()])
 
 
-def macrophage_volume(parameters, key_file):
-    return
+def tumor_volume(tumor_mask):
+    return np.count_nonzero(tumor_mask > 0)
 
 
-def macrophage_number(parameters, key_file):
-    return
+def macrophage_volume(macrophage_mask):
+    return np.count_nonzero(macrophage_mask > 0)
+
+
+def macrophage_number(parameters, macrophage_mask):
+    # remove artifacts connected to image border
+    cleared = clear_border(macrophage_mask)
+    cleared = morphology.remove_small_objects(cleared, parameters['macrophages_small_objects'], connectivity=2)
+
+    # label image regions
+    label_image = label(cleared)
+
+    return np.max(label_image)
 
 
 def do_analysis_on_all_files(parameters, key_file):
+    filenames = []
+    all_tumor_volumes = []
+    all_macrophage_volumes = []
+    all_macrophage_number = []
+    all_mean_macrophage_to_tumor_distances = []
+
+    for file in key_file["New name"].unique():
+        filenames.append(file)
+        # check if mask is good enough
+        seg_method = parameters['segmentation_method']
+        if key_file[file][seg_method + '_C1'] == 1 or key_file[file][seg_method + '_C2'] == 1 or key_file[file][seg_method + '_C3'] == 1:
+            # load mask or ilastik file
+            print('Loading mask...')
+            if seg_method == 'ilastik':
+                tumor_file = load_mask(parameters, file + '_C1')
+                macrophage_file = load_mask(parameters, file + '_C2')
+                vessel_file = load_mask(parameters, file + '_C3')
+
+                with h5py.File(tumor_file, "r") as f:
+                    a_group_key = list(f.keys())[0]
+                    # Get the data
+                    tumor_h5 = np.array(f[a_group_key])[:, :, :, 0]
+                #tumor_data = tumor_h5[:, :, :, 0]
+
+                with h5py.File(macrophage_file, "r") as f:
+                    a_group_key = list(f.keys())[0]
+                    # Get the data
+                    macrophage_h5 = np.array(f[a_group_key])[:, :, :, 0]
+                # macrophage_data = macrophage_h5[:, :, :, 0]
+
+                with h5py.File(vessel_file, "r") as f:
+                    a_group_key = list(f.keys())[0]
+                    # Get the data
+                    vessel_h5 = np.array(f[a_group_key])[:, :, :, 0]
+
+                # only use probabilities higher than 0.5
+                tumor_mask = np.where(tumor_h5 > 0.5, True, False)
+                macrophage_mask = np.where(macrophage_h5 > 0.5, True, False)
+                vessel_mask = np.where(vessel_h5 > 0.5, True, False)
+
+
+            else:
+                mask = load_mask(parameters, file)
+                tumor_mask = mask[:, :, :, 0]
+                macrophage_mask = mask[:, :, :, 1]
+                vessel_mask = mask[:, :, :, 2]
+
+            ##### Analysis functions
+
+        else:
+            print('Looks like the masks of ' + file + 'sucked for the ' + parameters['segmentation_method'] + ' segmentation :(')
+            all_tumor_volumes.append(None)
+            all_macrophage_volumes.append(None)
+            all_macrophage_number.append(None)
+            all_mean_macrophage_to_tumor_distances.append(None)
+
     return
