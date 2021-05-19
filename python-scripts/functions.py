@@ -240,43 +240,54 @@ def calculate_tumor_macrophage_distance(tumor_mask, macrophage_mask):
     return np.mean(tumor_distance[macrophage_mask.flatten()])
 
 
-def tumor_volume(tumor_mask):
+def get_tumor_volume(tumor_mask):
     return np.count_nonzero(tumor_mask > 0)
 
 
-def macrophage_volume(macrophage_mask):
+def get_labeled_macrophage_image(parameters, macrophage_mask):
+    all_frames_labeled = np.zeros(macrophage_mask.shape)
+
+    for frame in range(macrophage_mask.shape[0]):
+        # remove artifacts connected to image border
+        cleared = clear_border(macrophage_mask[frame])
+        cleared = morphology.remove_small_objects(cleared, parameters['macrophages_small_objects'], connectivity=2)
+
+        # label image regions
+        all_frames_labeled[frame] = label(cleared)
+
+    return all_frames_labeled
+
+
+def get_macrophage_volume(macrophage_mask):
     return np.count_nonzero(macrophage_mask > 0)
 
 
-def macrophage_number(parameters, macrophage_mask):
-    # remove artifacts connected to image border
-    cleared = clear_border(macrophage_mask)
-    cleared = morphology.remove_small_objects(cleared, parameters['macrophages_small_objects'], connectivity=2)
-
-    # label image regions
-    label_image = label(cleared)
-
-    return np.max(label_image)
+def get_macrophage_number(labeled_macrophage_mask):
+    return np.max(labeled_macrophage_mask)
 
 
 def do_analysis_on_all_files(parameters, key_file):
     filenames = []
     all_tumor_volumes = []
     all_macrophage_volumes = []
+    all_macrophage_volumes_labeled = []
     all_macrophage_number = []
     all_mean_macrophage_to_tumor_distances = []
+    all_mean_macrophage_to_tumor_distances_labeled = []
 
     for file in key_file["New name"].unique():
         filenames.append(file)
         # check if mask is good enough
         seg_method = parameters['segmentation_method']
-        if key_file[file][seg_method + '_C1'] == 1 or key_file[file][seg_method + '_C2'] == 1 or key_file[file][seg_method + '_C3'] == 1:
+
+        # only load mask if at least one channel is good enough
+        if (key_file[key_file['New name'] == file][seg_method + '_C1'] == 1).any() or (key_file[key_file['New name'] == file][seg_method + '_C2'] == 1).any() or (key_file[key_file['New name'] == file][seg_method + '_C3'] == 1).any():
             # load mask or ilastik file
-            print('Loading mask...')
+            print('Loading mask ' + file + '...')
             if seg_method == 'ilastik':
-                tumor_file = load_mask(parameters, file + '_C1')
-                macrophage_file = load_mask(parameters, file + '_C2')
-                vessel_file = load_mask(parameters, file + '_C3')
+                tumor_file = load_mask(parameters, file + '_C1.tif')
+                macrophage_file = load_mask(parameters, file + '_C2.tif')
+                vessel_file = load_mask(parameters, file + '_C3.tif')
 
                 with h5py.File(tumor_file, "r") as f:
                     a_group_key = list(f.keys())[0]
@@ -300,20 +311,84 @@ def do_analysis_on_all_files(parameters, key_file):
                 macrophage_mask = np.where(macrophage_h5 > 0.5, True, False)
                 vessel_mask = np.where(vessel_h5 > 0.5, True, False)
 
-
             else:
-                mask = load_mask(parameters, file)
+                mask = load_mask(parameters, file + '.tif')
                 tumor_mask = mask[:, :, :, 0]
                 macrophage_mask = mask[:, :, :, 1]
                 vessel_mask = mask[:, :, :, 2]
 
             ##### Analysis functions
 
+            # check if tumor mask looks okay
+            if (key_file[key_file['New name'] == file][seg_method + '_C1'] == 1).any():
+                print('    Get tumor volumes...')
+                tumor_volumes = []
+                for frame in range(tumor_mask.shape[0]):
+                    tumor_volumes.append(get_tumor_volume(tumor_mask[frame]))
+                all_tumor_volumes.append(tumor_volumes)
+            else:
+                all_tumor_volumes.append(None)
+
+            # check if macrophage mask looks okay
+            if (key_file[key_file['New name'] == file][seg_method + '_C2'] == 1).any():
+                labeled_macrophage_mask = get_labeled_macrophage_image(parameters, macrophage_mask)
+                print('    Get macrophage volumes and number...')
+                macrophage_volumes = []
+                macrophage_volumes_labeled = []
+                macrophage_number = []
+                for frame in range(macrophage_mask.shape[0]):
+                    macrophage_volumes.append(get_macrophage_volume(macrophage_mask[frame]))
+                    macrophage_volumes_labeled.append(get_macrophage_volume(labeled_macrophage_mask[frame]))
+                    macrophage_number.append(get_macrophage_number(labeled_macrophage_mask[frame]))
+                all_macrophage_volumes.append(macrophage_volumes)
+                all_macrophage_volumes_labeled.append(macrophage_volumes_labeled)
+                all_macrophage_number.append(macrophage_number)
+            else:
+                all_macrophage_volumes.append(None)
+                all_macrophage_volumes_labeled.append(None)
+                all_macrophage_number.append(None)
+
+            # if both of them look okay, go for the distance transform :)
+            if (key_file[key_file['New name'] == file][seg_method + '_C1'] == 1).any() and (key_file[key_file['New name'] == file][seg_method + '_C2'] == 1).any():
+                print('    Get macrophage to tumor distances...')
+                mean_macrophage_to_tumor_distances = []
+                mean_macrophage_to_tumor_distances_labeled = []
+                for frame in range(macrophage_mask.shape[0]):
+                    print(frame)
+                    mean_macrophage_to_tumor_distances.append(calculate_tumor_macrophage_distance(tumor_mask[frame], macrophage_mask[frame]))
+                    mean_macrophage_to_tumor_distances_labeled.append(
+                        calculate_tumor_macrophage_distance(tumor_mask[frame], labeled_macrophage_mask[frame]))
+                all_mean_macrophage_to_tumor_distances.append(mean_macrophage_to_tumor_distances)
+                all_mean_macrophage_to_tumor_distances_labeled.append(mean_macrophage_to_tumor_distances_labeled)
+
+            else:
+                all_mean_macrophage_to_tumor_distances.append(None)
+                all_mean_macrophage_to_tumor_distances_labeled.append(None)
+
         else:
-            print('Looks like the masks of ' + file + 'sucked for the ' + parameters['segmentation_method'] + ' segmentation :(')
+            print('Looks like the masks of ' + file + ' sucked for the ' + parameters['segmentation_method'] + ' segmentation :(')
+            filenames.append(None)
             all_tumor_volumes.append(None)
             all_macrophage_volumes.append(None)
+            all_macrophage_volumes_labeled.append(None)
             all_macrophage_number.append(None)
             all_mean_macrophage_to_tumor_distances.append(None)
+            all_mean_macrophage_to_tumor_distances_labeled.append(None)
 
-    return
+    df = pd.DataFrame({
+        'file_name': filenames,
+        'tumor_volume': all_tumor_volumes,
+        'macrophage_volume': all_macrophage_volumes,
+        'macrophage_volume_labeled': all_macrophage_volumes_labeled,
+        'macrophage_number': all_macrophage_number,
+        'mean_macrophage_to_tumor_distances': all_mean_macrophage_to_tumor_distances,
+        'mean_macrophage_to_tumor_distances': all_mean_macrophage_to_tumor_distances_labeled
+    })
+
+    dim_folder = get_dimension_folder(parameters)
+    path_for_saving_df = parameters['output_folder'] + '05_Data_Analysis/' + dim_folder + '01_Dataframes/' + seg_method + '/'
+    if not os.path.exists(path_for_saving_df):
+        os.makedirs(path_for_saving_df)
+    df.to_pickle(path_for_saving_df + 'analysis_dataframe.pkl')
+
+    return df
