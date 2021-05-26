@@ -235,13 +235,29 @@ def load_mask(parameters, mask_name):
         print(file_path + mask_name + ' does not exist!')
 
 
-def calculate_tumor_macrophage_distance(tumor_mask, macrophage_mask):
-    tumor_distance = scipy.ndimage.morphology.distance_transform_edt(np.invert(tumor_mask))
-    return np.mean(tumor_distance[macrophage_mask.flatten()])
+def calculate_mean_distance_of_macrophages(distance_mask, macrophage_mask):
+    distance_map = scipy.ndimage.morphology.distance_transform_edt(np.invert(distance_mask)).flatten()
+    # print(distance_map.shape)
+    return np.mean(distance_map[macrophage_mask.flatten()])
 
 
-def get_tumor_volume(tumor_mask):
-    return np.count_nonzero(tumor_mask > 0)
+def plot_distance_map(distance_mask, out_path):
+    """
+    Function for plotting the distance map to check it by eye. Implemented because ilastik distance maps didn't work
+    and for Thresholding the plots looked like for just taking the macrophage volume.
+    :param distance_mask:
+    :param out_path:
+    :return:
+    """
+    distance_map = scipy.ndimage.morphology.distance_transform_edt(np.invert(distance_mask))
+    fig, ax = plt.subplots(figsize=(15, 15))
+    ax.imshow(distance_map)
+    plt.savefig(out_path, format="png", bbox_inches="tight", dpi=100)
+    plt.close()
+
+
+def get_volume(frame):
+    return np.count_nonzero(frame > 0)
 
 
 def get_labeled_macrophage_image(parameters, macrophage_mask):
@@ -258,15 +274,14 @@ def get_labeled_macrophage_image(parameters, macrophage_mask):
     return all_frames_labeled
 
 
-def get_macrophage_volume(macrophage_mask):
-    return np.count_nonzero(macrophage_mask > 0)
-
-
 def get_macrophage_number(labeled_macrophage_mask):
     return np.max(labeled_macrophage_mask)
 
 
 def do_analysis_on_all_files(parameters, key_file):
+    dim_folder = get_dimension_folder(parameters)
+    seg_method = parameters['segmentation_method']
+
     filenames = []
     all_tumor_volumes = []
     all_macrophage_volumes = []
@@ -274,20 +289,25 @@ def do_analysis_on_all_files(parameters, key_file):
     all_macrophage_number = []
     all_mean_macrophage_to_tumor_distances = []
     all_mean_macrophage_to_tumor_distances_labeled = []
+    all_vessel_volumes = []
+    all_mean_macrophage_to_vessel_distances = []
 
     for file in key_file["New name"].unique():
         filenames.append(file)
-        # check if mask is good enough
-        seg_method = parameters['segmentation_method']
 
         # only load mask if at least one channel is good enough
         if (key_file[key_file['New name'] == file][seg_method + '_C1'] == 1).any() or (key_file[key_file['New name'] == file][seg_method + '_C2'] == 1).any() or (key_file[key_file['New name'] == file][seg_method + '_C3'] == 1).any():
+            path_for_checking_frames = parameters['output_folder'] + '05_Data_Analysis/' + dim_folder + '03_Check_masks/' + seg_method + '/' + file + '/'
+            if not os.path.exists(path_for_checking_frames):
+                os.makedirs(path_for_checking_frames)
+
             # load mask or ilastik file
             print('Loading mask ' + file + '...')
             if seg_method == 'ilastik':
-                tumor_file = load_mask(parameters, file + '_C1.tif')
-                macrophage_file = load_mask(parameters, file + '_C2.tif')
-                vessel_file = load_mask(parameters, file + '_C3.tif')
+                file_path = get_segmentation_file_path(parameters)
+                tumor_file = file_path + file + '_C1_Probabilities.h5'
+                macrophage_file = file_path + file + '_C2_Probabilities.h5'
+                vessel_file = file_path + file + '_C3_Probabilities.h5'
 
                 with h5py.File(tumor_file, "r") as f:
                     a_group_key = list(f.keys())[0]
@@ -307,15 +327,15 @@ def do_analysis_on_all_files(parameters, key_file):
                     vessel_h5 = np.array(f[a_group_key])[:, :, :, 0]
 
                 # only use probabilities higher than 0.5
-                tumor_mask = np.where(tumor_h5 > 0.5, True, False)
-                macrophage_mask = np.where(macrophage_h5 > 0.5, True, False)
-                vessel_mask = np.where(vessel_h5 > 0.5, True, False)
+                tumor_mask = np.where(np.array(tumor_h5) > 0.5, True, False)
+                macrophage_mask = np.where(np.array(macrophage_h5) > 0.5, True, False)
+                vessel_mask = np.where(np.array(vessel_h5) > 0.5, True, False)
 
             else:
                 mask = load_mask(parameters, file + '.tif')
-                tumor_mask = mask[:, :, :, 0]
-                macrophage_mask = mask[:, :, :, 1]
-                vessel_mask = mask[:, :, :, 2]
+                tumor_mask = np.where(np.array(mask[:, :, :, 0]) > 0, True, False)
+                macrophage_mask = np.where(np.array(mask[:, :, :, 1]) > 0, True, False)
+                vessel_mask = np.where(np.array(mask[:, :, :, 2]) > 0, True, False)
 
             ##### Analysis functions
 
@@ -324,7 +344,15 @@ def do_analysis_on_all_files(parameters, key_file):
                 print('    Get tumor volumes...')
                 tumor_volumes = []
                 for frame in range(tumor_mask.shape[0]):
-                    tumor_volumes.append(get_tumor_volume(tumor_mask[frame]))
+                    # save that frame for checking mask by eye...
+                    fig, ax = plt.subplots(figsize=(15, 15))
+                    ax.imshow(tumor_mask[frame])
+                    plt.savefig(path_for_checking_frames + 'tumor_frame' + str(frame) + '.png', format="png", bbox_inches="tight", dpi=100)
+                    plt.close()
+
+                    plot_distance_map(tumor_mask[frame], path_for_checking_frames + 'tumor_distance_map_frame' + str(frame) + '.png')
+
+                    tumor_volumes.append(get_volume(tumor_mask[frame]))
                 all_tumor_volumes.append(tumor_volumes)
             else:
                 all_tumor_volumes.append(None)
@@ -337,8 +365,14 @@ def do_analysis_on_all_files(parameters, key_file):
                 macrophage_volumes_labeled = []
                 macrophage_number = []
                 for frame in range(macrophage_mask.shape[0]):
-                    macrophage_volumes.append(get_macrophage_volume(macrophage_mask[frame]))
-                    macrophage_volumes_labeled.append(get_macrophage_volume(labeled_macrophage_mask[frame]))
+                    fig, ax = plt.subplots(figsize=(15, 15))
+                    ax.imshow(macrophage_mask[frame, :, :])
+                    plt.savefig(path_for_checking_frames + 'macrophage_frame' + str(frame) + '.png', format="png",
+                                 bbox_inches="tight", dpi=100)
+                    plt.close()
+
+                    macrophage_volumes.append(get_volume(macrophage_mask[frame]))
+                    macrophage_volumes_labeled.append(get_volume(labeled_macrophage_mask[frame]))
                     macrophage_number.append(get_macrophage_number(labeled_macrophage_mask[frame]))
                 all_macrophage_volumes.append(macrophage_volumes)
                 all_macrophage_volumes_labeled.append(macrophage_volumes_labeled)
@@ -348,7 +382,25 @@ def do_analysis_on_all_files(parameters, key_file):
                 all_macrophage_volumes_labeled.append(None)
                 all_macrophage_number.append(None)
 
-            # if both of them look okay, go for the distance transform :)
+            # check if vessel mask looks okay
+            if (key_file[key_file['New name'] == file][seg_method + '_C3'] == 1).any():
+                print('    Get vessel volumes...')
+                vessel_volumes = []
+                for frame in range(vessel_mask.shape[0]):
+                    fig, ax = plt.subplots(figsize=(15, 15))
+                    ax.imshow(vessel_mask[frame, :, :])
+                    plt.savefig(path_for_checking_frames + 'vessel_frame' + str(frame) + '.png', format="png",
+                                bbox_inches="tight", dpi=100)
+                    plt.close()
+
+                    plot_distance_map(vessel_mask[frame], path_for_checking_frames + 'vessel_distance_map_frame' + str(frame) + '.png')
+
+                    vessel_volumes.append(get_volume(vessel_mask[frame]))
+                all_vessel_volumes.append(vessel_volumes)
+            else:
+                all_vessel_volumes.append(None)
+
+            # if tumor and macrophage mask look okay, go for the distance transform :)
             if (key_file[key_file['New name'] == file][seg_method + '_C1'] == 1).any() and \
                     (key_file[key_file['New name'] == file][seg_method + '_C2'] == 1).any():
                 print('    Get macrophage to tumor distances...')
@@ -356,17 +408,29 @@ def do_analysis_on_all_files(parameters, key_file):
                 mean_macrophage_to_tumor_distances_labeled = []
                 for frame in range(macrophage_mask.shape[0]):
                     print(frame)
-                    mean_macrophage_to_tumor_distances.append(calculate_tumor_macrophage_distance(tumor_mask[frame],
+                    # print(macrophage_mask[frame].shape)
+                    mean_macrophage_to_tumor_distances.append(calculate_mean_distance_of_macrophages(tumor_mask[frame],
                                                                                                   macrophage_mask[frame]))
-                    #macrophage_labeled_boolean = np.where(labeled_macrophage_mask[frame] > 0, True, False)
-                    #mean_macrophage_to_tumor_distances_labeled.append(
-                     #   calculate_tumor_macrophage_distance(tumor_mask[frame], macrophage_labeled_boolean))
+                    # TO DO: I also tried to get the distances with the labeled image but somehow it didn't work
+                    macrophage_labeled_boolean = np.where(np.array(labeled_macrophage_mask[frame]) > 0, True, False)
+                    mean_macrophage_to_tumor_distances_labeled.append(calculate_mean_distance_of_macrophages(tumor_mask[frame], macrophage_labeled_boolean))
                 all_mean_macrophage_to_tumor_distances.append(mean_macrophage_to_tumor_distances)
                 all_mean_macrophage_to_tumor_distances_labeled.append(mean_macrophage_to_tumor_distances_labeled)
 
             else:
                 all_mean_macrophage_to_tumor_distances.append(None)
                 all_mean_macrophage_to_tumor_distances_labeled.append(None)
+
+            # if vessel and macrophage masks look okay, go fo the distance transform :)
+            if (key_file[key_file['New name'] == file][seg_method + '_C2'] == 1).any() and (key_file[key_file['New name'] == file][seg_method + '_C3'] == 1).any():
+                print('    Get macrophage to vessel distances...')
+                mean_macrophage_to_vessel_distances = []
+                for frame in range(macrophage_mask.shape[0]):
+                    print(frame)
+                    mean_macrophage_to_vessel_distances.append(calculate_mean_distance_of_macrophages(vessel_mask[frame], macrophage_mask[frame]))
+                all_mean_macrophage_to_vessel_distances.append(mean_macrophage_to_vessel_distances)
+            else:
+                all_mean_macrophage_to_vessel_distances.append(None)
 
         else:
             print('Looks like the masks of ' + file + ' sucked for the ' + parameters['segmentation_method'] + ' segmentation :(')
@@ -376,6 +440,8 @@ def do_analysis_on_all_files(parameters, key_file):
             all_macrophage_number.append(None)
             all_mean_macrophage_to_tumor_distances.append(None)
             all_mean_macrophage_to_tumor_distances_labeled.append(None)
+            all_vessel_volumes.append(None)
+            all_mean_macrophage_to_vessel_distances.append(None)
 
     df = pd.DataFrame({
         'New name': filenames,
@@ -383,11 +449,12 @@ def do_analysis_on_all_files(parameters, key_file):
         'macrophage_volume': all_macrophage_volumes,
         'macrophage_volume_labeled': all_macrophage_volumes_labeled,
         'macrophage_number': all_macrophage_number,
-        'mean_macrophage_to_tumor_distances': all_mean_macrophage_to_tumor_distances
-        #'mean_macrophage_to_tumor_distances_labeled': all_mean_macrophage_to_tumor_distances_labeled
+        'vessel_volume': all_vessel_volumes,
+        'mean_macrophage_to_tumor_distances': all_mean_macrophage_to_tumor_distances,
+        'mean_macrophage_to_vessel_distances': all_mean_macrophage_to_vessel_distances,
+        'mean_macrophage_to_tumor_distances_labeled': all_mean_macrophage_to_tumor_distances_labeled
     })
 
-    dim_folder = get_dimension_folder(parameters)
     path_for_saving_df = parameters['output_folder'] + '05_Data_Analysis/' + dim_folder + '01_Dataframes/' + seg_method + '/'
     if not os.path.exists(path_for_saving_df):
         os.makedirs(path_for_saving_df)
@@ -413,7 +480,6 @@ def plot_column(parameters, df, type):
     for exp in df['New name'].unique():
         # only plot if tumor volume data exists
         if df[df['New name'] == exp][type].any():
-            print()
             time = range(0, len(df[df['New name'] == exp][type].any())*df[df['New name'] == exp]['Ti (min)'].values[0], df[df['New name'] == exp]['Ti (min)'].values[0])
             color = next(ax._get_lines.prop_cycler)['color']
             plt.plot(time, df[df['New name'] == exp][type].any(), color=color, label=exp)
@@ -433,3 +499,6 @@ def plot_all(parameters, df):
     plot_column(parameters, df, 'macrophage_volume_labeled')
     plot_column(parameters, df, 'macrophage_number')
     plot_column(parameters, df, 'mean_macrophage_to_tumor_distances')
+    plot_column(parameters, df, 'vessel_volume')
+    plot_column(parameters, df, 'mean_macrophage_to_vessel_distances')
+    plot_column(parameters, df, 'mean_macrophage_to_tumor_distances_labeled')

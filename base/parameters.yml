@@ -1,2 +1,11 @@
 data_folder: "/folder/to/data/"
 output_folder: "/folder/to/output/"
+
+dimension: "2D"   # "2D" or "3D"
+otsu_thresholding: False  # Boolean if Otsu thresholding should be performed
+
+sigma: 1  # sigma for Gaussian filtering before Otsu thresholding
+
+segmentation_method: "ilastik"  # possibilities are "ilastik" or "Thresholding"
+
+macrophages_small_objects: 2500   # size of "debry" that will be taken out of macrophage mask
