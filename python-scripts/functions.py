@@ -236,7 +236,7 @@ def load_mask(parameters, mask_name):
 
 
 def calculate_tumor_macrophage_distance(tumor_mask, macrophage_mask):
-    tumor_distance = scipy.ndimage.morphology.distance_transform_edt(np.invert(tumor_mask[:, :, :]))
+    tumor_distance = scipy.ndimage.morphology.distance_transform_edt(np.invert(tumor_mask))
     return np.mean(tumor_distance[macrophage_mask.flatten()])
 
 
@@ -349,15 +349,18 @@ def do_analysis_on_all_files(parameters, key_file):
                 all_macrophage_number.append(None)
 
             # if both of them look okay, go for the distance transform :)
-            if (key_file[key_file['New name'] == file][seg_method + '_C1'] == 1).any() and (key_file[key_file['New name'] == file][seg_method + '_C2'] == 1).any():
+            if (key_file[key_file['New name'] == file][seg_method + '_C1'] == 1).any() and \
+                    (key_file[key_file['New name'] == file][seg_method + '_C2'] == 1).any():
                 print('    Get macrophage to tumor distances...')
                 mean_macrophage_to_tumor_distances = []
                 mean_macrophage_to_tumor_distances_labeled = []
                 for frame in range(macrophage_mask.shape[0]):
                     print(frame)
-                    mean_macrophage_to_tumor_distances.append(calculate_tumor_macrophage_distance(tumor_mask[frame], macrophage_mask[frame]))
-                    mean_macrophage_to_tumor_distances_labeled.append(
-                        calculate_tumor_macrophage_distance(tumor_mask[frame], labeled_macrophage_mask[frame]))
+                    mean_macrophage_to_tumor_distances.append(calculate_tumor_macrophage_distance(tumor_mask[frame],
+                                                                                                  macrophage_mask[frame]))
+                    #macrophage_labeled_boolean = np.where(labeled_macrophage_mask[frame] > 0, True, False)
+                    #mean_macrophage_to_tumor_distances_labeled.append(
+                     #   calculate_tumor_macrophage_distance(tumor_mask[frame], macrophage_labeled_boolean))
                 all_mean_macrophage_to_tumor_distances.append(mean_macrophage_to_tumor_distances)
                 all_mean_macrophage_to_tumor_distances_labeled.append(mean_macrophage_to_tumor_distances_labeled)
 
@@ -367,7 +370,6 @@ def do_analysis_on_all_files(parameters, key_file):
 
         else:
             print('Looks like the masks of ' + file + ' sucked for the ' + parameters['segmentation_method'] + ' segmentation :(')
-            filenames.append(None)
             all_tumor_volumes.append(None)
             all_macrophage_volumes.append(None)
             all_macrophage_volumes_labeled.append(None)
@@ -376,13 +378,13 @@ def do_analysis_on_all_files(parameters, key_file):
             all_mean_macrophage_to_tumor_distances_labeled.append(None)
 
     df = pd.DataFrame({
-        'file_name': filenames,
+        'New name': filenames,
         'tumor_volume': all_tumor_volumes,
         'macrophage_volume': all_macrophage_volumes,
         'macrophage_volume_labeled': all_macrophage_volumes_labeled,
         'macrophage_number': all_macrophage_number,
-        'mean_macrophage_to_tumor_distances': all_mean_macrophage_to_tumor_distances,
-        'mean_macrophage_to_tumor_distances': all_mean_macrophage_to_tumor_distances_labeled
+        'mean_macrophage_to_tumor_distances': all_mean_macrophage_to_tumor_distances
+        #'mean_macrophage_to_tumor_distances_labeled': all_mean_macrophage_to_tumor_distances_labeled
     })
 
     dim_folder = get_dimension_folder(parameters)
@@ -392,3 +394,42 @@ def do_analysis_on_all_files(parameters, key_file):
     df.to_pickle(path_for_saving_df + 'analysis_dataframe.pkl')
 
     return df
+
+
+#######################################################################################################################
+#                                                 Plotting functions                                                  #
+#######################################################################################################################
+
+def plot_column(parameters, df, type):
+    print('Plotting ' + type +  '...')
+
+    dim_folder = get_dimension_folder(parameters)
+    output_path = parameters['output_folder'] + '05_Data_Analysis/' + dim_folder + '02_Plots/' + parameters['segmentation_method'] + '/'
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
+    plt.figure()
+    ax = plt.gca()
+    for exp in df['New name'].unique():
+        # only plot if tumor volume data exists
+        if df[df['New name'] == exp][type].any():
+            print()
+            time = range(0, len(df[df['New name'] == exp][type].any())*df[df['New name'] == exp]['Ti (min)'].values[0], df[df['New name'] == exp]['Ti (min)'].values[0])
+            color = next(ax._get_lines.prop_cycler)['color']
+            plt.plot(time, df[df['New name'] == exp][type].any(), color=color, label=exp)
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', prop={'size': 10})
+    plt.xlabel('time [min]', fontsize=14)
+    plt.ylabel(type, fontsize=14)
+    plt.tick_params(labelsize=12)
+
+    plt.savefig(output_path + type + '.png', format="png", bbox_inches="tight", dpi=150)
+    plt.savefig(output_path + type + '.pdf', format="pdf", bbox_inches="tight", dpi=150)
+    plt.close()
+
+
+def plot_all(parameters, df):
+    plot_column(parameters, df, 'tumor_volume')
+    plot_column(parameters, df, 'macrophage_volume')
+    plot_column(parameters, df, 'macrophage_volume_labeled')
+    plot_column(parameters, df, 'macrophage_number')
+    plot_column(parameters, df, 'mean_macrophage_to_tumor_distances')
