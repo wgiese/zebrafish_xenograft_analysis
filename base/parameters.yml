@@ -1,6 +1,8 @@
 data_folder: "/folder/to/data/"
 output_folder: "/folder/to/output/"
 
+output_filename: "image_001"
+
 dimension: "2D"   # "2D" or "3D"
 otsu_thresholding: False  # Boolean if Otsu thresholding should be performed
 
