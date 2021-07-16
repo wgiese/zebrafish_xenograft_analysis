@@ -1,6 +1,7 @@
 data_folder: "/folder/to/data/"
 output_folder: "/folder/to/output/"
 
+use_gpu: False
 output_filename: "image_001"
 
 dimension: "2D"   # "2D" or "3D"
