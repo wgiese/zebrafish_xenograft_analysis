@@ -1,11 +1,12 @@
+import functions_common
 import functions_2D
 import os
 import pandas as pd
 
-parameters = functions_2D.read_parameters()
+parameters = functions_common.read_parameters()
 print("#"*5,"parameters","#"*5)
 print(parameters)
-key_file = functions_2D.read_key_file(parameters)
+key_file = functions_common.read_key_file(parameters)
 print("#"*5,"key_file","#"*5)
 print(key_file.head())
 print(key_file.keys())
