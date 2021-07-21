@@ -47,6 +47,8 @@ def read_key_file(parameters):
 #######################################################################################################################
 
 def otsu_thresholding_3D(parameters, image):
+    #TODO: why is this function in run_2D ? Only needed in run_3D ?
+
     # use Gaussian filter to smooth images
     # print(" Gaussian filtering...")
     image_labeled = gaussian_filter(image, sigma=parameters['sigma'])
@@ -67,6 +69,8 @@ def otsu_thresholding_3D(parameters, image):
 
 
 def otsu_thresholding_3D_allFrames(parameters, movie):
+    #TODO: why is this function in run_2D ? Only needed in run_3D ?
+
     im_tumor = movie[:, :, :, :, 0]
     im_macrophages = movie[:, :, :, :, 1]
     im_vessels = movie[:, :, :, :, 2]
@@ -132,10 +136,6 @@ def otsu_loop_over_key_file(parameters, key_file):
 
                 print("Loading data...")
                 movie = np.array(io.imread(file_path))
-
-                # im_tumor = movie[:, :, :, :, 0]
-                # im_macrophages = movie[:, :, :, :, 1]
-                # im_vessels = movie[:, :, :, :, 2]
 
                 # Otsu thresholding
                 print(" Otsu thresholding...")
@@ -300,11 +300,14 @@ def do_analysis_on_all_files(parameters, key_file):
     all_tumor_percentages = []
     all_vessel_percentages = []
 
-    for file in key_file["New name"].unique():
+       
+
+    #for file in key_file["New name"].unique():
+    for file in key_file["short_name"].unique():
         filenames.append(file)
 
         # only load mask if at least one channel is good enough
-        if (key_file[key_file['New name'] == file][seg_method + '_C1'] == 1).any() or (key_file[key_file['New name'] == file][seg_method + '_C2'] == 1).any() or (key_file[key_file['New name'] == file][seg_method + '_C3'] == 1).any():
+        if (key_file[key_file['short_name'] == file][seg_method + '_C1'] == 1).any() or (key_file[key_file['short_name'] == file][seg_method + '_C2'] == 1).any() or (key_file[key_file['short_name'] == file][seg_method + '_C3'] == 1).any():
             path_for_checking_frames = parameters['output_folder'] + '05_Data_Analysis/' + dim_folder + '03_Check_masks/' + seg_method + '/' + file + '/'
             if not os.path.exists(path_for_checking_frames):
                 os.makedirs(path_for_checking_frames)
@@ -348,7 +351,7 @@ def do_analysis_on_all_files(parameters, key_file):
             ##### Analysis functions
 
             # check if tumor mask looks okay
-            if (key_file[key_file['New name'] == file][seg_method + '_C1'] == 1).any():
+            if (key_file[key_file['short_name'] == file][seg_method + '_C1'] == 1).any():
                 print('    Get tumor volumes...')
                 tumor_volumes = []
                 tumor_percentages = []
@@ -370,7 +373,7 @@ def do_analysis_on_all_files(parameters, key_file):
                 all_tumor_percentages.append(None)
 
             # check if macrophage mask looks okay
-            if (key_file[key_file['New name'] == file][seg_method + '_C2'] == 1).any():
+            if (key_file[key_file['short_name'] == file][seg_method + '_C2'] == 1).any():
                 labeled_macrophage_mask = get_labeled_macrophage_image(parameters, macrophage_mask)
                 print('    Get macrophage volumes and number...')
                 macrophage_volumes = []
@@ -406,7 +409,7 @@ def do_analysis_on_all_files(parameters, key_file):
                 all_macrophage_percentages.append(None)
 
             # check if vessel mask looks okay
-            if (key_file[key_file['New name'] == file][seg_method + '_C3'] == 1).any():
+            if (key_file[key_file['short_name'] == file][seg_method + '_C3'] == 1).any():
                 print('    Get vessel volumes...')
                 vessel_volumes = []
                 vessel_percentages = []
@@ -428,8 +431,8 @@ def do_analysis_on_all_files(parameters, key_file):
                 all_vessel_percentages(None)
 
             # if tumor and macrophage mask look okay, go for the distance transform :)
-            if (key_file[key_file['New name'] == file][seg_method + '_C1'] == 1).any() and \
-                    (key_file[key_file['New name'] == file][seg_method + '_C2'] == 1).any():
+            if (key_file[key_file['short_name'] == file][seg_method + '_C1'] == 1).any() and \
+                    (key_file[key_file['short_name'] == file][seg_method + '_C2'] == 1).any():
                 print('    Get macrophage to tumor distances...')
                 mean_macrophage_to_tumor_distances = []
                 mean_macrophage_to_tumor_distances_labeled = []
@@ -449,7 +452,7 @@ def do_analysis_on_all_files(parameters, key_file):
                 all_mean_macrophage_to_tumor_distances_labeled.append(None)
 
             # if vessel and macrophage masks look okay, go fo the distance transform :)
-            if (key_file[key_file['New name'] == file][seg_method + '_C2'] == 1).any() and (key_file[key_file['New name'] == file][seg_method + '_C3'] == 1).any():
+            if (key_file[key_file['short_name'] == file][seg_method + '_C2'] == 1).any() and (key_file[key_file['short_name'] == file][seg_method + '_C3'] == 1).any():
                 print('    Get macrophage to vessel distances...')
                 mean_macrophage_to_vessel_distances = []
                 for frame in range(macrophage_mask.shape[0]):
@@ -475,7 +478,7 @@ def do_analysis_on_all_files(parameters, key_file):
             all_vessel_percentages.append(None)
 
     df = pd.DataFrame({
-        'New name': filenames,
+        'short_name': filenames,
         'tumor_volume': all_tumor_volumes,
         'tumor_volume_percentage': all_tumor_percentages,
         'macrophage_volume': all_macrophage_volumes,
@@ -511,12 +514,12 @@ def plot_column(parameters, df, type):
 
     plt.figure()
     ax = plt.gca()
-    for exp in df['New name'].unique():
+    for exp in df['short_name'].unique():
         # only plot if tumor volume data exists
-        if df[df['New name'] == exp][type].any():
-            time = range(0, len(df[df['New name'] == exp][type].any())*df[df['New name'] == exp]['Ti (min)'].values[0], df[df['New name'] == exp]['Ti (min)'].values[0])
+        if df[df['short_name'] == exp][type].any():
+            time = range(0, len(df[df['short_name'] == exp][type].any())*df[df['New name'] == exp]['Ti (min)'].values[0], df[df['New name'] == exp]['Ti (min)'].values[0])
             color = next(ax._get_lines.prop_cycler)['color']
-            plt.plot(time, df[df['New name'] == exp][type].any(), color=color, label=exp)
+            plt.plot(time, df[df['short_name'] == exp][type].any(), color=color, label=exp)
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', prop={'size': 10})
     plt.xlabel('time [min]', fontsize=14)
     plt.ylabel(type, fontsize=14)
@@ -581,8 +584,8 @@ def compare_macrophage_number_and_volume(parameters, key_file, df):
             #print(positions_df)
             #print(statistics_df)
 
-            if (key_file[key_file['New name'] == file][parameters["segmentation_method"] + '_C2'] == 1).any():
-                macrophage_volume = df[df['New name'] == file]["macrophage_volume"].any()
+            if (key_file[key_file['short_name'] == file][parameters["segmentation_method"] + '_C2'] == 1).any():
+                macrophage_volume = df[df['short_name'] == file]["macrophage_volume"].any()
 
                 fig, ax = plt.subplots(figsize=(15, 10))
                 time = range(1, len(macrophage_volume) + 1)
@@ -599,7 +602,7 @@ def compare_macrophage_number_and_volume(parameters, key_file, df):
                 fig.savefig(path + parameters['segmentation_method'] + '_macrophage-number-to-volume-comparison.png', format="png", bbox_inches="tight", dpi=150)
                 fig.savefig(path + parameters['segmentation_method'] + '_macrophage-number-to-volume-comparison.pdf', format="pdf", bbox_inches="tight", dpi=150)
 
-                macrophage_volume_percentage = df[df['New name'] == file]["macrophage_volume_percentage"].any()
+                macrophage_volume_percentage = df[df['short_name'] == file]["macrophage_volume_percentage"].any()
 
                 fig, ax = plt.subplots(figsize=(15, 10))
                 time = range(1, len(macrophage_volume_percentage) + 1)

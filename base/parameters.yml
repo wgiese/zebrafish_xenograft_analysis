@@ -1,10 +1,13 @@
 data_folder: "/folder/to/data/"
 output_folder: "/folder/to/output/"
+key_file_name: "Details_imaging_data_3D.xls"
 
-use_gpu: False
-output_filename: "image_001"
 
 dimension: "2D"   # "2D" or "3D"
+channel_tumor : 0
+channel_macrophages: 1
+channel_vessels: 2
+
 otsu_thresholding: False  # Boolean if Otsu thresholding should be performed
 
 sigma: 1  # sigma for Gaussian filtering before Otsu thresholding
@@ -12,3 +15,9 @@ sigma: 1  # sigma for Gaussian filtering before Otsu thresholding
 segmentation_method: "ilastik"  # possibilities are "ilastik" or "Thresholding"
 
 macrophages_small_objects: 2500   # size of "debry" that will be taken out of macrophage mask
+
+# cellpose segmentation
+use_gpu: False
+output_filename: "image_001"
+
+
