@@ -22,6 +22,158 @@ matplotlib.rc('font', **font)
 #                                                 Analysis functions                                                  #
 #######################################################################################################################
 
+def otsu_thresholding_3D(parameters, image):
+    #TODO: why is this function in run_2D ? Only needed in run_3D ?
+
+    # use Gaussian filter to smooth images
+    # print(" Gaussian filtering...")
+    image_labeled = gaussian_filter(image, sigma=parameters['sigma'])
+
+    # Otsu thresholding images
+    # print(" Otsu thresholding...")
+    image_labeled = np.where(image_labeled > threshold_otsu(image_labeled), True, False)
+
+    # remove artefacts connected to border
+    # print(" Removing small objects...")
+    image_labeled = clear_border(image_labeled)
+    image_labeled = morphology.remove_small_objects(image_labeled, 2500, connectivity=2)
+
+    # label image regions
+    image_labeled = label(image_labeled)
+
+    return image_labeled
+
+
+def otsu_thresholding_3D_allFrames(parameters, movie):
+    #TODO: why is this function in run_2D ? Only needed in run_3D ?
+
+    im_tumor = movie[:, :, :, :, 0]
+    im_macrophages = movie[:, :, :, :, 1]
+    im_vessels = movie[:, :, :, :, 2]
+
+    mask_tumor = np.zeros(im_tumor.shape)
+    mask_macrophages = np.zeros(im_tumor.shape)
+    mask_vessels = np.zeros(im_tumor.shape)
+    # mask = np.zeros(movie.shape)
+
+    print("Total number of time points: " + str(movie.shape[0]))
+
+    for tp in range(movie.shape[0]):
+        print("Time point: " + str(tp))
+        # mask[tp] = otsu_thresholding_3D(parameters, movie[tp])
+        mask_tumor[tp] = otsu_thresholding_3D(parameters, im_tumor[tp])
+        mask_macrophages[tp] = otsu_thresholding_3D(parameters, im_macrophages[tp])
+        mask_vessels[tp] = otsu_thresholding_3D(parameters, im_vessels[tp])
+
+    return mask_tumor, mask_macrophages, mask_vessels
+    # return mask
+
+
+def otsu_thresholding_2D_allFrames(parameters, movie2D):
+    im_tumor = movie2D[:, :, :, 0]
+    im_macrophages = movie2D[:, :, :, 1]
+    im_vessels = movie2D[:, :, :, 2]
+
+    mask_tumor = np.zeros(im_tumor.shape)
+    mask_macrophages = np.zeros(im_tumor.shape)
+    mask_vessels = np.zeros(im_tumor.shape)
+    # mask = np.zeros(movie.shape)
+
+    print("Total number of time points: " + str(movie2D.shape[0]))
+
+    for tp in range(movie2D.shape[0]):
+        print("Time point: " + str(tp))
+        # mask[tp] = otsu_thresholding_3D(parameters, movie[tp])
+        mask_tumor[tp] = otsu_thresholding_3D(parameters, im_tumor[tp])
+        mask_macrophages[tp] = otsu_thresholding_3D(parameters, im_macrophages[tp])
+        mask_vessels[tp] = otsu_thresholding_3D(parameters, im_vessels[tp])
+
+    return mask_tumor, mask_macrophages, mask_vessels
+    # return mask
+
+
+def otsu_loop_over_key_file(parameters, key_file):
+    """
+    NEEDS IMPROVEMENT! Otsu masks are not saved yet. Careful with 2D/3D. It doesn't read that information from the
+    parameters file yet.
+    :param parameters:
+    :param key_file:
+    :return:
+    """
+    for filename in key_file["short_name"].unique():
+        if pd.isna(filename):
+            continue
+        print(filename)
+        file_path = parameters["data_folder"] + "03_Processed_Data/3D/" + filename + '.tif'
+        #file_path = parameters["data_folder"] + "05_BGsubtracted/02_3D/" + file + '.tif'
+
+        if os.path.exists(file_path):
+            print(file_path)
+            #output_path = parameters["output_folder"] + "05_BGsubtracted/02_3D/Otsu/sigma" + str(
+            #    parameters['sigma']) + '/' + file + '/'
+            #if not os.path.exists(output_path):
+            #    os.makedirs(output_path)
+
+            print("Loading data...")
+            movie = np.array(io.imread(file_path))
+
+                # Otsu thresholding
+            print(" Otsu thresholding...")
+            [mask_tumor, mask_macrophages, mask_vessels] = otsu_thresholding_3D_allFrames(parameters, movie)
+                # [mask_2D_tumor, mask_2D_macrophages, mask_2D_vessels] = otsu_thresholding_2D_allFrames(parameters, movie)
+                # print("     Tumor")
+                # mask_tumor = otsu_thresholding_3D_allFrames(parameters, im_tumor)
+                # print("     Macrophages")
+                # mask_macrophages = otsu_thresholding_3D_allFrames(parameters, im_macrophages)
+                # print("     Vessels")
+                # mask_vessels = otsu_thresholding_3D_allFrames(parameters, im_vessels)
+
+                # save 2D mask projections to file
+            #    mask_2D_tumor = np.zeros((mask_tumor.shape[0], mask_tumor.shape[2], mask_tumor.shape[3]))
+            #    mask_2D_macrophages = np.zeros((mask_tumor.shape[0], mask_tumor.shape[2], mask_tumor.shape[3]))
+            #    mask_2D_vessels = np.zeros((mask_tumor.shape[0], mask_tumor.shape[2], mask_tumor.shape[3]))
+
+              
+                # numRows = mask_2D_tumor.shape[0]
+                # save image of comparison between mask and original to assess how well segmentation works
+                
+            '''
+                for tp in range(mask_2D_tumor.shape[0]):
+                    fig, axes = plt.subplots(1, 2, figsize=(16, 12))
+                    axes[0].imshow(np.amax(movie[tp, :, :, :, 0], axis=0))
+                    # axes[0].imshow(movie[tp, :, :, 0])
+                    axes[1].imshow(mask_2D_tumor[tp])
+                    plt.savefig(output_path + "/tumor_" + str(tp) + ".png", format="png", bbox_inches="tight", dpi=150)
+                    plt.close()
+
+                    fig, axes = plt.subplots(1, 2, figsize=(16, 12))
+                    axes[0].imshow(np.amax(movie[tp, :, :, :, 1], axis=0))
+                    # axes[0].imshow(movie[tp, :, :, 1])
+                    axes[1].imshow(mask_2D_macrophages[tp])
+                    plt.savefig(output_path + "/macrophages_" + str(tp) + ".png", format="png", bbox_inches="tight",
+                                dpi=150)
+                    plt.close()
+
+                    fig, axes = plt.subplots(1, 2, figsize=(16, 12))
+                    axes[0].imshow(np.amax(movie[tp, :, :, :, 2], axis=0))
+                    # axes[0].imshow(movie[tp, :, :, 2])
+                    axes[1].imshow(mask_2D_vessels[tp])
+                    plt.savefig(output_path + "/vessels_" + str(tp) + ".png", format="png", bbox_inches="tight",
+                                dpi=150)
+                    plt.close()
+            '''
+
+                # del movie
+                # del mask_macrophages, mask_tumor, mask_vessels
+
+            #else:
+            #    print("Otsu thresholding already done for " + file + " and sigma " + str(parameters['sigma']))
+
+        else:
+            print("The file '%s' does not exist." % file_path)
+
+    return None
+
 def get_dimension_folder(parameters):
     if parameters['dimension'] == '2D':
         return '01_2D/'
