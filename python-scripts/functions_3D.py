@@ -78,6 +78,8 @@ def otsu_thresholding_2D_allFrames(parameters, movie2D):
     mask_macrophages = np.zeros(im_tumor.shape)
     mask_vessels = np.zeros(im_tumor.shape)
     # mask = np.zeros(movie.shape)
+    
+    #TODO: Check if gaussian smoothing is helpful here
 
     print("Total number of time points: " + str(movie2D.shape[0]))
 
@@ -117,9 +119,24 @@ def otsu_loop_over_key_file(parameters, key_file):
             print("Loading data...")
             movie = np.array(io.imread(file_path))
 
-                # Otsu thresholding
+            # Otsu thresholding
             print(" Otsu thresholding...")
             [mask_tumor, mask_macrophages, mask_vessels] = otsu_thresholding_3D_allFrames(parameters, movie)
+            
+            del movie
+            del mask_macrophages, mask_tumor, mask_vessels
+
+
+            #if parameters["export_masks"] == "vtk":
+    		#time_stamp = str(frame).zfill(3)
+    		#filename = output_folder + filename_short + "-" + time_stamp
+    
+    		#imageToVTK(filename, cellData = {"tumor": im_tumor_smoothed, 
+               #                      "macrophages" : im_macrophages_smoothed, 
+               #                      "vessel": im_vessel_smoothed})
+            	
+            
+            
                 # [mask_2D_tumor, mask_2D_macrophages, mask_2D_vessels] = otsu_thresholding_2D_allFrames(parameters, movie)
                 # print("     Tumor")
                 # mask_tumor = otsu_thresholding_3D_allFrames(parameters, im_tumor)

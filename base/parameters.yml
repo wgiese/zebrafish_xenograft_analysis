@@ -16,6 +16,9 @@ segmentation_method: "ilastik"  # possibilities are "ilastik" or "Thresholding"
 
 macrophages_small_objects: 2500   # size of "debry" that will be taken out of macrophage mask
 
+export_masks : npy # or vtk or none
+
+
 # cellpose segmentation
 use_gpu: False
 output_filename: "image_001"
