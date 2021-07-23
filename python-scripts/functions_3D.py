@@ -1,5 +1,6 @@
 import h5py
 import numpy as np
+from pyevtk.hl import imageToVTK
 from matplotlib import pyplot as plt
 import scipy.ndimage
 import os
@@ -23,37 +24,63 @@ matplotlib.rc('font', **font)
 #######################################################################################################################
 
 def otsu_thresholding_3D(parameters, image):
-    #TODO: why is this function in run_2D ? Only needed in run_3D ?
+    '''
+        input:
+            parameters  - dict() with all meta parameters for analysis
+            image - numpy array containing image data 2D or 3D
+        output:
+            image_labeled - numpy array 2D/3D with labeled macrophages
+            thresh - threshold that was applied to obtain the mask
+
+        TODO: - split into thresholding and labelling
+              - move to common if used in 2D nd 3D
+    '''
 
     # use Gaussian filter to smooth images
     # print(" Gaussian filtering...")
-    image_labeled = gaussian_filter(image, sigma=parameters['sigma'])
+    image_blurred = gaussian_filter(image, sigma=parameters['sigma'])
 
     # Otsu thresholding images
     # print(" Otsu thresholding...")
-    image_labeled = np.where(image_labeled > threshold_otsu(image_labeled), True, False)
+    thresh = threshold_otsu(image_blurred)
+
+    image_mask = np.where(image_blurred > thresh, True, False)
+    del image_blurred
 
     # remove artefacts connected to border
     # print(" Removing small objects...")
-    image_labeled = clear_border(image_labeled)
-    image_labeled = morphology.remove_small_objects(image_labeled, 2500, connectivity=2)
+    image_mask = clear_border(image_mask)
+    image_mask = morphology.remove_small_objects(image_mask, parameters["macrophages_small_objects"], connectivity=2)
 
     # label image regions
-    image_labeled = label(image_labeled)
+    image_labeled = label(image_mask)
+    del image_mask
 
-    return image_labeled
+    return image_labeled, thresh
 
 
 def otsu_thresholding_3D_allFrames(parameters, movie):
-    #TODO: why is this function in run_2D ? Only needed in run_3D ?
+    '''
+        input:
+            parameters  - dict() with all meta parameters for analysis
+            movie - numpy array containing 3D + time image data with dimensions in the following order time, x , y, z 
+        output:
+            tumor_labels - numpy array 3D + time with tumor labels
+            macrophage_labels - numpy array 3D + time with macrophage labels
+            vessel_labels - numpy array 3D + time with vessel labels
+
+        TODO: - split into thresholding and labelling
+              - move to common if used in 2D nd 3D
+              - think about doing channels separately due to high memory demand in 3D
+    '''
 
     im_tumor = movie[:, :, :, :, 0]
     im_macrophages = movie[:, :, :, :, 1]
     im_vessels = movie[:, :, :, :, 2]
 
-    mask_tumor = np.zeros(im_tumor.shape)
-    mask_macrophages = np.zeros(im_tumor.shape)
-    mask_vessels = np.zeros(im_tumor.shape)
+    tumor_labels = np.zeros(im_tumor.shape)
+    macrophage_labels = np.zeros(im_tumor.shape)
+    vessel_labels = np.zeros(im_tumor.shape)
     # mask = np.zeros(movie.shape)
 
     print("Total number of time points: " + str(movie.shape[0]))
@@ -61,11 +88,11 @@ def otsu_thresholding_3D_allFrames(parameters, movie):
     for tp in range(movie.shape[0]):
         print("Time point: " + str(tp))
         # mask[tp] = otsu_thresholding_3D(parameters, movie[tp])
-        mask_tumor[tp] = otsu_thresholding_3D(parameters, im_tumor[tp])
-        mask_macrophages[tp] = otsu_thresholding_3D(parameters, im_macrophages[tp])
-        mask_vessels[tp] = otsu_thresholding_3D(parameters, im_vessels[tp])
+        tumor_labels[tp], thresh = otsu_thresholding_3D(parameters, im_tumor[tp])
+        macrophages_labels[tp], thresh = otsu_thresholding_3D(parameters, im_macrophages[tp])
+        vessel_labels[tp], thresh = otsu_thresholding_3D(parameters, im_vessels[tp])
 
-    return mask_tumor, mask_macrophages, mask_vessels
+    return tumor_labels, macrophages_labels, vessel_labels
     # return mask
 
 
@@ -227,6 +254,79 @@ def calculate_mean_distance_of_macrophages(distance_mask, macrophage_mask):
     distance_map = scipy.ndimage.morphology.distance_transform_edt(np.invert(distance_mask)).flatten()
     # print(distance_map.shape)
     return np.mean(distance_map[macrophage_mask.flatten()])
+
+
+def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out = False, npy_out = False):
+    '''
+        Input:
+            parameters  - dict() with all meta parameters for analysis
+            key_file - pandas data frame with relative filepaths to images and necessary meta info
+
+
+    '''
+    properties_df = pd.DataFrame()
+    index_counter = 0
+
+
+    for filename in key_file["short_name"].unique():
+        
+        #print(filename)
+        #print(experiment)
+
+        if pd.isna(filename):
+            continue
+        if (experiment == "all" or experiment == filename):
+       
+            file_path = parameters["data_folder"] + "03_Preprocessed_Data/02_3D/" + filename + '.tif'
+
+            print("Processing experiment: %s" % experiment)
+
+            if os.path.exists(file_path):
+                print(file_path)
+
+                print("Loading data...")
+                movie = np.array(io.imread(file_path))
+                movie_macrophages = movie[:, :, :, :, parameters["channel_macrophages"]]
+                del movie
+
+                #mask_macrophages = np.zeros(movie_macrophages.shape)
+                labeled_macrophages = np.zeros(movie_macrophages.shape)
+
+                for tp in range(movie_macrophages.shape[0]):
+                    print("Time point: " + str(tp))
+                    labeled_macrophages[tp], threshold = otsu_thresholding_3D(parameters, movie_macrophages[tp])
+                    
+                    for label_id in range(0,int(np.max(labeled_macrophages[tp])) + 1):
+                        macrophage_prop = regionprops(np.where(labeled_macrophages[tp] == label_id, 1, 0))
+                        for props in macrophage_prop:
+                            x_centroid, y_centroid, z_centroid = props.centroid
+                        
+                        properties_df.at[index_counter, "short_name"] = filename
+                        properties_df.at[index_counter, "time_frame"] = tp
+                        properties_df.at[index_counter, "threshold"] = threshold
+                        properties_df.at[index_counter, "macrophage_label"] = label
+                        properties_df.at[index_counter, "x_centroid"] = x_centroid
+                        properties_df.at[index_counter, "y_centroid"] = y_centroid
+                        properties_df.at[index_counter, "z_centroid"] = z_centroid
+                     
+                        index_counter += 1
+
+                if npy_out:
+                    np.save(parameters["output_folder"] + filename + ".npy", labeled_macrophages, allow_pickle=False)
+                if vtk_out:
+                    for frame in range(movie_macrophages.shape[0]):
+                        time_stamp = "-" + str(frame).zfill(3)
+                        imageToVTK(parameters["output_folder"] + filename + time_stamp, cellData = {"macrophages" : labeled_macrophages[frame]} )
+
+
+
+
+            else:
+                print("Path %s does not exist" % file_path)
+
+
+    return properties_df 
+
 
 
 def plot_distance_map(distance_mask, out_path):
