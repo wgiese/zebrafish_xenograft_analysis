@@ -10,7 +10,8 @@ print(key_file.head())
 print(key_file.keys())
 
 
-macrophage_properties_df = functions_3D.get_macrophage_properties(parameters, key_file, experiment ="200804_LBT070_1dpi_Pos001", npy_out = True, vtk_out = True)
+#macrophage_properties_df = functions_3D.get_macrophage_properties(parameters, key_file, experiment ="200804_LBT070_1dpi_Pos001", npy_out = True, vtk_out = True)
+macrophage_properties_df = functions_3D.get_macrophage_properties(parameters, key_file, experiment ="all", npy_out = True, vtk_out = True)
 
 print(macrophage_properties_df)
 
