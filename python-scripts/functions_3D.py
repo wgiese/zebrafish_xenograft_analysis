@@ -337,6 +337,7 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                         
                         ax.plot(y_centroids, x_centroids, 'rx', markersize = 15)
                         plt.savefig(parameters["output_folder"] + filename + time_stamp + ".pdf")
+                    properties_df.to_csv(parameters["output_folder"] + "macrophage_properties" + experiment + ".csv")
 
                 if npy_out:
                     np.save(parameters["output_folder"] + filename + ".npy", labeled_macrophages, allow_pickle=False)
