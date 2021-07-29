@@ -97,9 +97,5 @@ def thresholding_3D(parameters, image):
     # print(" Removing small objects...")
     image_mask = clear_border(image_mask)
     image_mask = morphology.remove_small_objects(image_mask, parameters["macrophages_small_objects"], connectivity=2)
-
-    # label image regions
-    image_labeled = label(image_mask)
-    del image_mask
        
-    return image_labeled, thresh_
+    return image_mask, thresh_

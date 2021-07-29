@@ -15,6 +15,9 @@ import tifffile as tif
 from scipy.ndimage import gaussian_filter
 import matplotlib
 import yaml
+from scipy import ndimage as ndi
+from skimage.segmentation import watershed
+from skimage.feature import peak_local_max
 
 
 font = {'family': 'normal', 'weight': 'bold', 'size': 22}
@@ -305,16 +308,30 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
 
                 for tp in range(movie_macrophages.shape[0]):
                     print("Time point: " + str(tp))
-                    labeled_macrophages, threshold = functions_common.thresholding_3D(parameters, movie_macrophages[tp])
+                    macrophages_thresh, threshold = functions_common.thresholding_3D(parameters, movie_macrophages[tp])
                     #labeled_macrophages[tp], threshold = otsu_thresholding_3D(parameters, movie_macrophages[tp])
                     
-                    print(threshold)
-                    
+                    if parameters["segmentation_method"] == "Watershed":
+                        print("Apply distance transform ...")
+                        distance = ndi.distance_transform_edt(macrophages_thresh)
+                        coords = peak_local_max(distance, footprint=np.ones((3, 3, 3)), labels=macrophages_thresh)
+                        mask = np.zeros(distance.shape, dtype=bool)
+                        mask[tuple(coords.T)] = True
+                        markers, num_labels = ndi.label(mask)
+                        print("Apply watershed ...")
+                        labeled_macrophages = watershed(-distance, markers, mask=macrophages_thresh)
+                    else:
+                        labeled_macrophages = label(macrophages_thresh)
+                        num_labels = np.max(labeled_macrophages)
+
+                    print("Number of labels: %s" % num_labels)                    
+
+                    print("Extract coordinates")
                     x_centroids = []
                     y_centroids = []
-                    for label_id in range(1,int(np.max(labeled_macrophages)) + 1):
+                    for label_id in range(1, num_labels + 1):
                         macrophage_prop = regionprops(np.where(labeled_macrophages == label_id, 1, 0))
-                        macrophage_volume = len(labeled_macrophages[labeled_macrophages == label_id])*pixel_volume
+                        macrophage_volume = len(labeled_macrophages[labeled_macrophages == label_id])*pixel_volume                        
 
                         for props in macrophage_prop:
                             z_centroid, x_centroid, y_centroid = props.centroid
@@ -324,7 +341,7 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                         properties_df.at[index_counter, "short_name"] = filename
                         properties_df.at[index_counter, "time_frame"] = tp
                         properties_df.at[index_counter, "threshold"] = threshold
-                        properties_df.at[index_counter, "macrophage_label"] = label
+                        properties_df.at[index_counter, "macrophage_label"] = label_id
                         properties_df.at[index_counter, "macrophage_volume"] = macrophage_volume
                         properties_df.at[index_counter, "x_centroid"] = x_centroid
                         properties_df.at[index_counter, "y_centroid"] = y_centroid
@@ -360,15 +377,35 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
 
                     if npy_out:
                         np.save(parameters["output_folder"] + filename + time_stamp + ".npy", labeled_macrophages, allow_pickle=False)
-                   
-
-
             else:
                 print("Path %s does not exist" % file_path)
 
 
     return properties_df 
 
+def get_tumor_macrophage_point_distances(parameters, key_file, emacrophage_properties, xperiment = "all"):
+
+    distances_df = pd.DataFrame()
+
+    for index, row in key_file.iterrows():
+
+        filename = row["short_name"]
+        #print(filename)
+        #print(experiment)
+
+        if pd.isna(filename):
+            continue
+        if not (experiment in macrophage_properties["short_name"]):
+            continue
+
+        if (experiment == "all" or experiment == filename):
+
+            file_path = parameters["data_folder"] + "03_Preprocessed_Data/02_3D/" + filename + '.tif'
+            
+    
+
+    return distances_df
+    
 
 
 def plot_distance_map(distance_mask, out_path):
