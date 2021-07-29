@@ -16,8 +16,13 @@ from scipy.ndimage import gaussian_filter
 import matplotlib
 import yaml
 
+
 font = {'family': 'normal', 'weight': 'bold', 'size': 22}
 matplotlib.rc('font', **font)
+
+
+import functions_common
+
 
 #######################################################################################################################
 #                                                 Analysis functions                                                  #
@@ -44,7 +49,8 @@ def otsu_thresholding_3D(parameters, image):
     # print(" Otsu thresholding...")
     thresh = threshold_otsu(image_blurred)
 
-    image_mask = np.where(image_blurred > thresh, True, False)
+    #image_mask = np.where(image_blurred > thresh, True, False)
+    image_mask = image_blurred > thresh
     del image_blurred
 
     # remove artefacts connected to border
@@ -299,7 +305,10 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
 
                 for tp in range(movie_macrophages.shape[0]):
                     print("Time point: " + str(tp))
-                    labeled_macrophages[tp], threshold = otsu_thresholding_3D(parameters, movie_macrophages[tp])
+                    labeled_macrophages[tp], threshold = functions_common.thresholding_3D(parameters, movie_macrophages[tp])
+                    #labeled_macrophages[tp], threshold = otsu_thresholding_3D(parameters, movie_macrophages[tp])
+                    
+                    print(threshold)
                     
                     x_centroids = []
                     y_centroids = []

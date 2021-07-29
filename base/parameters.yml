@@ -8,7 +8,9 @@ channel_tumor : 0
 channel_macrophages: 1
 channel_vessels: 2
 
-otsu_thresholding: False  # Boolean if Otsu thresholding should be performed
+thresholding_method: "otsu" # options are "isodata", "li", "mean", "minimum", "niblack", "otsu", "sauvola", "triangle", "yen", "local" or an integer value
+
+otsu_thresholding: False  # Boolean if Otsu thresholding should be performed #TODO remove
 
 sigma: 1  # sigma for Gaussian filtering before Otsu thresholding
 
