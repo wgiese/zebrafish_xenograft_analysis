@@ -364,13 +364,19 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                         imageToVTK(parameters["output_folder"] + filename + time_stamp, cellData = {"macrophages" : labeled_macrophages} )
                     if proj_2D:
                         img_2D_proj = np.zeros((labeled_macrophages.shape[1],labeled_macrophages.shape[2])) 
+                        plot_df = properties_df[properties_df["time_frame"] == tp]
                         for x in range(labeled_macrophages.shape[1]):
                             for y in range(labeled_macrophages.shape[2]):
                                 img_2D_proj[x,y] = np.max(labeled_macrophages[:,x,y])
                         fig, ax = plt.subplots(figsize=(15,15))
                         ax.imshow(img_2D_proj[:,:])
                         
-                        ax.plot(y_centroids, x_centroids, 'rx', markersize = 15)
+                        for ind, row_plt in plot_df.iterrows():
+                            if row_plt["macrophage_volume"] < 100000:
+                                ax.plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rX', markersize = 15)
+                            else:
+                                ax.plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rx', markersize = 15)
+                        #ax.plot(y_centroids, x_centroids, 'rx', markersize = 15)
                         plt.savefig(parameters["output_folder"] + filename + time_stamp + ".pdf")
                         plt.savefig(parameters["output_folder"] + filename + time_stamp + ".png")
                     properties_df.to_csv(parameters["output_folder"] + "macrophage_properties" + experiment + ".csv")
@@ -383,7 +389,7 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
 
     return properties_df 
 
-def get_tumor_macrophage_point_distances(parameters, key_file, emacrophage_properties, xperiment = "all"):
+def get_tumor_macrophage_point_distances(parameters, key_file, macrophage_properties, experiment = "all"):
 
     distances_df = pd.DataFrame()
 
@@ -402,7 +408,10 @@ def get_tumor_macrophage_point_distances(parameters, key_file, emacrophage_prope
 
             file_path = parameters["data_folder"] + "03_Preprocessed_Data/02_3D/" + filename + '.tif'
             
-    
+            print("Loading data...")
+            movie = np.array(io.imread(file_path))
+            movie_tumor = movie[:, :, :, :, parameters["channel_tumor"]]
+            
 
     return distances_df
     
