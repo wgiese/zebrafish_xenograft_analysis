@@ -262,7 +262,7 @@ def calculate_mean_distance_of_macrophages(distance_mask, macrophage_mask):
     return np.mean(distance_map[macrophage_mask.flatten()])
 
 
-def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out = False, npy_out = False, proj_2D = True):
+def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out = False, npy_out = False, proj_2D = True, hist = True):
     '''
         Input:
             parameters  - dict() with all meta parameters for analysis
@@ -301,20 +301,20 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                 print(movie_macrophages.shape)                
 
                 #mask_macrophages = np.zeros(movie_macrophages.shape)
-                labeled_macrophages = np.zeros(movie_macrophages.shape)
+                #labeled_macrophages = np.zeros(movie_macrophages.shape)
 
                 for tp in range(movie_macrophages.shape[0]):
                     print("Time point: " + str(tp))
-                    labeled_macrophages[tp], threshold = functions_common.thresholding_3D(parameters, movie_macrophages[tp])
+                    labeled_macrophages, threshold = functions_common.thresholding_3D(parameters, movie_macrophages[tp])
                     #labeled_macrophages[tp], threshold = otsu_thresholding_3D(parameters, movie_macrophages[tp])
                     
                     print(threshold)
                     
                     x_centroids = []
                     y_centroids = []
-                    for label_id in range(1,int(np.max(labeled_macrophages[tp])) + 1):
-                        macrophage_prop = regionprops(np.where(labeled_macrophages[tp] == label_id, 1, 0))
-                        macrophage_volume = len(labeled_macrophages[tp][labeled_macrophages[tp] == label_id])*pixel_volume
+                    for label_id in range(1,int(np.max(labeled_macrophages)) + 1):
+                        macrophage_prop = regionprops(np.where(labeled_macrophages == label_id, 1, 0))
+                        macrophage_volume = len(labeled_macrophages[labeled_macrophages == label_id])*pixel_volume
 
                         for props in macrophage_prop:
                             z_centroid, x_centroid, y_centroid = props.centroid
@@ -334,13 +334,22 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                     
                     
                     time_stamp = "-" + str(tp).zfill(3)
+                    if hist:
+                        fig, ax = plt.subplots(figsize=(15,15))
+                        ax.hist(movie_macrophages[tp].flatten(), bins = 256)
+                        ax.set_xlim(0,255)
+                        if isinstance(threshold,int):
+                            ax.vlines(treshold)
+                        plt.savefig(parameters["output_folder"] + experiment + "histogram" + time_stamp + ".pdf")
+                        plt.savefig(parameters["output_folder"] + experiment + "histogram" + time_stamp + ".png")
+
                     if vtk_out:
-                        imageToVTK(parameters["output_folder"] + filename + time_stamp, cellData = {"macrophages" : labeled_macrophages[tp]} )
+                        imageToVTK(parameters["output_folder"] + filename + time_stamp, cellData = {"macrophages" : labeled_macrophages} )
                     if proj_2D:
-                        img_2D_proj = np.zeros((labeled_macrophages[tp].shape[1],labeled_macrophages[tp].shape[2])) 
-                        for x in range(labeled_macrophages[tp].shape[1]):
-                            for y in range(labeled_macrophages[tp].shape[2]):
-                                img_2D_proj[x,y] = np.max(labeled_macrophages[tp][:,x,y])
+                        img_2D_proj = np.zeros((labeled_macrophages.shape[1],labeled_macrophages.shape[2])) 
+                        for x in range(labeled_macrophages.shape[1]):
+                            for y in range(labeled_macrophages.shape[2]):
+                                img_2D_proj[x,y] = np.max(labeled_macrophages[:,x,y])
                         fig, ax = plt.subplots(figsize=(15,15))
                         ax.imshow(img_2D_proj[:,:])
                         
@@ -349,8 +358,8 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                         plt.savefig(parameters["output_folder"] + filename + time_stamp + ".png")
                     properties_df.to_csv(parameters["output_folder"] + "macrophage_properties" + experiment + ".csv")
 
-                if npy_out:
-                    np.save(parameters["output_folder"] + filename + ".npy", labeled_macrophages, allow_pickle=False)
+                    if npy_out:
+                        np.save(parameters["output_folder"] + filename + time_stamp + ".npy", labeled_macrophages, allow_pickle=False)
                    
 
 

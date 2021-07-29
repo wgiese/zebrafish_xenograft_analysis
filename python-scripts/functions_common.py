@@ -83,6 +83,11 @@ def thresholding_3D(parameters, image):
     	thresh = skifi.threshold_local(image_blurred)
 	    #print("Using thresholding method yen with value %s" % thresh)
 
+ 
+    if isinstance(thresh,int):
+        thresh_ = thresh
+    else:
+        thresh_ = "local"
 
     #image_mask = np.where(image_blurred > thresh, True, False)
     image_mask = image_blurred > thresh
@@ -96,10 +101,5 @@ def thresholding_3D(parameters, image):
     # label image regions
     image_labeled = label(image_mask)
     del image_mask
-    
-    if isinstance(thresh,int):
-        thresh_ = thresh
-    else:
-        thresh_ = "local"
-    
+       
     return image_labeled, thresh_
