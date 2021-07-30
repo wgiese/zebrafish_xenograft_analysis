@@ -72,7 +72,7 @@ def thresholding_3D(parameters, image):
     	print("Using thresholding method otsu with value %s" % thresh)
     if parameters["thresholding_method"] == "sauvola":
     	thresh = skifi.threshold_sauvola(image_blurred)
-        #print("Using thresholding method sauvola with value %s" % thresh)
+    	print("Using thresholding method sauvola with value")
     if parameters["thresholding_method"] == "yen":
         thresh = skifi.threshold_yen(image_blurred)
 	    #print("Using thresholding method yen with value %s" % thresh)
@@ -84,7 +84,7 @@ def thresholding_3D(parameters, image):
 	    #print("Using thresholding method yen with value %s" % thresh)
 
  
-    if isinstance(thresh,int):
+    if type(thresh) == int:
         thresh_ = thresh
     else:
         thresh_ = "local"

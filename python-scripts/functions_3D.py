@@ -355,10 +355,11 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                         fig, ax = plt.subplots(figsize=(15,15))
                         ax.hist(movie_macrophages[tp].flatten(), bins = 256)
                         ax.set_xlim(0,255)
-                        if isinstance(threshold,int):
-                            ax.vlines(treshold)
-                        plt.savefig(parameters["output_folder"] + experiment + "histogram" + time_stamp + ".pdf")
-                        plt.savefig(parameters["output_folder"] + experiment + "histogram" + time_stamp + ".png")
+                        if type(threshold) == int:
+                            print("threshold : %s" % threshold) 
+                            ax.vlines(threshold, "r--")
+                        plt.savefig(parameters["output_folder"] + experiment + "-histogram" + time_stamp + ".pdf")
+                        plt.savefig(parameters["output_folder"] + experiment + "-histogram" + time_stamp + ".png")
 
                     if vtk_out:
                         imageToVTK(parameters["output_folder"] + filename + time_stamp, cellData = {"macrophages" : labeled_macrophages} )
