@@ -38,7 +38,7 @@ def read_key_file(parameters):
 
     return key_file
     
-def thresholding_3D(parameters, image):
+def thresholding_3D(parameters, image_blurred):
     '''
         input:
             parameters  - dict() with all meta parameters for analysis
@@ -53,7 +53,7 @@ def thresholding_3D(parameters, image):
 
     # use Gaussian filter to smooth images
     # print(" Gaussian filtering...")
-    image_blurred = gaussian_filter(image, sigma=parameters['sigma'])
+    # image_blurred = gaussian_filter(image, sigma=parameters['sigma'])
 
     # thresholding images
     thresh = 10
@@ -71,20 +71,19 @@ def thresholding_3D(parameters, image):
     	thresh = skifi.threshold_otsu(image_blurred)
     	print("Using thresholding method otsu with value %s" % thresh)
     if parameters["thresholding_method"] == "sauvola":
-    	thresh = skifi.threshold_sauvola(image_blurred)
-    	print("Using thresholding method sauvola with value")
+    	thresh = skifi.threshold_sauvola(image_blurred, window_size = parameters["window_size_thresholding"])
+    	print("Using thresholding method sauvola")
     if parameters["thresholding_method"] == "yen":
         thresh = skifi.threshold_yen(image_blurred)
-	    #print("Using thresholding method yen with value %s" % thresh)
     if parameters["thresholding_method"] == "triangle":
     	thresh = skifi.threshold_yen(image_blurred)
-	    #print("Using thresholding method triangle with value %s" % thresh)
     if parameters["thresholding_method"] == "local":
     	thresh = skifi.threshold_local(image_blurred)
-	    #print("Using thresholding method yen with value %s" % thresh)
 
  
-    if type(thresh) == int:
+    print("Type of threshold")
+    print(type(thresh))
+    if (type(thresh) == int or np.int64) or (type(thresh) == float):
         thresh_ = thresh
     else:
         thresh_ = "local"

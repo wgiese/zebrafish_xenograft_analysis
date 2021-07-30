@@ -2,6 +2,7 @@ import h5py
 import numpy as np
 from pyevtk.hl import imageToVTK
 from matplotlib import pyplot as plt
+import seaborn as sns
 import scipy.ndimage
 import os
 import pandas as pd
@@ -308,7 +309,9 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
 
                 for tp in range(movie_macrophages.shape[0]):
                     print("Time point: " + str(tp))
-                    macrophages_thresh, threshold = functions_common.thresholding_3D(parameters, movie_macrophages[tp])
+                    macrophages_blurred = gaussian_filter(movie_macrophages[tp], sigma=parameters['sigma'])
+
+                    macrophages_thresh, threshold = functions_common.thresholding_3D(parameters, macrophages_blurred)
                     #labeled_macrophages[tp], threshold = otsu_thresholding_3D(parameters, movie_macrophages[tp])
                     
                     if parameters["segmentation_method"] == "Watershed":
@@ -331,7 +334,7 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                     y_centroids = []
                     for label_id in range(1, num_labels + 1):
                         macrophage_prop = regionprops(np.where(labeled_macrophages == label_id, 1, 0))
-                        macrophage_volume = len(labeled_macrophages[labeled_macrophages == label_id])*pixel_volume                        
+                        macrophage_volume = len(labeled_macrophages[labeled_macrophages == label_id].flatten())*pixel_volume                        
 
                         for props in macrophage_prop:
                             z_centroid, x_centroid, y_centroid = props.centroid
@@ -351,32 +354,58 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                     
                     
                     time_stamp = "-" + str(tp).zfill(3)
+                    
+                    # debug output
                     if hist:
-                        fig, ax = plt.subplots(figsize=(15,15))
-                        ax.hist(movie_macrophages[tp].flatten(), bins = 256)
-                        ax.set_xlim(0,255)
-                        if type(threshold) == int:
-                            print("threshold : %s" % threshold) 
-                            ax.vlines(threshold, "r--")
-                        plt.savefig(parameters["output_folder"] + experiment + "-histogram" + time_stamp + ".pdf")
-                        plt.savefig(parameters["output_folder"] + experiment + "-histogram" + time_stamp + ".png")
+                        fig, ax = plt.subplots(1,2, figsize=(30,15))
+                        n_bins = np.max(movie_macrophages[tp].flatten())
+                        sns.histplot(movie_macrophages[tp].flatten(), bins = n_bins + 1,ax = ax[0])
+                        ax[0].set_xlim(0, n_bins + 1)
+                        n_bins = np.max(macrophages_blurred.flatten())
+                        sns.histplot(macrophages_blurred.flatten(), bins = n_bins + 1,ax = ax[1])
+                        ax[1].set_xlim(0, n_bins + 1)
+                        ax[0].set_ylim(0, len(movie_macrophages[tp][movie_macrophages[tp] > 0].flatten()))
+                        ax[1].set_ylim(0, len(macrophages_blurred[macrophages_blurred > 0].flatten()))
+                        #ax[0].set_ylim(0, 0.1*len(movie_macrophages[tp].flatten()))
+                        #ax[1].set_ylim(0, 0.1*len(movie_macrophages[tp].flatten()))
+                        ax[0].set_title("histogram original")
+                        ax[1].set_title("histogram of blurred image")
+                        print("histogram %s" %threshold)
+                        if (type(threshold) == int or np.int64) or (type(threshold) == float):
+                            print("plot histogram with threshold threshold : %s" % threshold) 
+                            ax[1].axvline(threshold, color = "r", linewidth = 3)
+                            ax[1].set_title("histogram of blurred image with threshold at %s" % threshold)
+                        plt.savefig(parameters["output_folder"] + filename + "-histogram" + time_stamp + ".pdf")
+                        plt.savefig(parameters["output_folder"] + filename + "-histogram" + time_stamp + ".png")
 
                     if vtk_out:
                         imageToVTK(parameters["output_folder"] + filename + time_stamp, cellData = {"macrophages" : labeled_macrophages} )
+                    
                     if proj_2D:
-                        img_2D_proj = np.zeros((labeled_macrophages.shape[1],labeled_macrophages.shape[2])) 
+                        label_2D_proj = np.zeros((labeled_macrophages.shape[1],labeled_macrophages.shape[2])) 
+                        sum_2D_proj = np.zeros((labeled_macrophages.shape[1],labeled_macrophages.shape[2])) 
+                        sum_blurred_2D_proj = np.zeros((labeled_macrophages.shape[1],labeled_macrophages.shape[2])) 
                         plot_df = properties_df[properties_df["time_frame"] == tp]
                         for x in range(labeled_macrophages.shape[1]):
                             for y in range(labeled_macrophages.shape[2]):
-                                img_2D_proj[x,y] = np.max(labeled_macrophages[:,x,y])
-                        fig, ax = plt.subplots(figsize=(15,15))
-                        ax.imshow(img_2D_proj[:,:])
+                                label_2D_proj[x,y] = np.max(labeled_macrophages[:,x,y])
+                                sum_2D_proj[x,y] = np.sum(movie_macrophages[tp][:,x,y])
+                                sum_blurred_2D_proj[x,y] = np.max(macrophages_blurred[:,x,y])
+                        fig, ax = plt.subplots(1,3, figsize=(45,15))
+                        ax[0].imshow(sum_2D_proj[:,:])
+                        ax[1].imshow(sum_blurred_2D_proj[:,:])
+                        ax[2].imshow(label_2D_proj[:,:])
+                        ax[0].set_title("sum projection")
+                        ax[1].set_title("sum projection - gaussian filter")
+                        ax[2].set_title("labels from segmentation")
                         
                         for ind, row_plt in plot_df.iterrows():
-                            if row_plt["macrophage_volume"] < 100000:
-                                ax.plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rX', markersize = 15)
-                            else:
-                                ax.plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rx', markersize = 15)
+                            #if row_plt["macrophage_volume"] < 100000:
+                            ax[1].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rx', markersize = 15)
+                            ax[2].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rX', markersize = 15)
+                            #else:
+                            #    ax[0].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rx', markersize = 15)
+                            #    ax[1].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rx', markersize = 15)
                         #ax.plot(y_centroids, x_centroids, 'rx', markersize = 15)
                         plt.savefig(parameters["output_folder"] + filename + time_stamp + ".pdf")
                         plt.savefig(parameters["output_folder"] + filename + time_stamp + ".png")
@@ -390,8 +419,8 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
 
     return properties_df 
 
-def get_tumor_macrophage_point_distances(parameters, key_file, macrophage_properties, experiment = "all"):
-
+def get_tumor_macrophage_point_distances(parameters, key_file, macrophage_properties, experiment = "all", proj_2D = True):
+    
     distances_df = pd.DataFrame()
 
     for index, row in key_file.iterrows():
@@ -413,8 +442,44 @@ def get_tumor_macrophage_point_distances(parameters, key_file, macrophage_proper
             movie = np.array(io.imread(file_path))
             movie_tumor = movie[:, :, :, :, parameters["channel_tumor"]]
             
+            time_points = np.max(macrophage_properties["time_frame"]) + 1
+            for tp in range(time_points):
+                tumor_blurred = gaussian_filter(movie_tumor[tp], sigma=parameters['sigma'])
+                tumor_thresh, threshold = functions_common.thresholding_3D(parameters, tumor_blurred)
+                dx = parameters["PhysicalSizeX"] 
+                dy = parameters["PhysicalSizeY"] 
+                dz = parameters["PhysicalSizeZ"] 
+                tumor_distances = scipy.ndimage.morphology.distance_transform_edt(np.invert(tumor_thresh), sampling = [dz,dx,dy])
+    
+                mean_2D_proj = np.zeros((tumor_thresh.shape[1],tumor_thresh.shape[2]))
+                sum_2D_proj = np.zeros((tumor_thresh.shape[1],tumor_thresh.shape[2]))
+                plot_df = macrophage_properties[macrophage_properties["time_frame"] == tp]
+                for x in range(tumor_thresh.shape[1]):
+                    for y in range(tumor_thresh.shape[2]):
+                        mean_2D_proj[x,y] = np.mean(tumor_distances[:,x,y])
+                        sum_2D_proj[x,y] = np.sum(tumor_thresh[:,x,y])
+                        fig, ax = plt.subplots(1,2, figsize=(30,15))
+                        ax[0].imshow(tumor[:,:])
+                        ax[1].imshow(sum_blurred_2D_proj[:,:])
+                        ax[0].set_title("sum projection")
+                        ax[1].set_title("sum projection - gaussian filter")
 
-    return distances_df
+                        for ind, row_plt in plot_df.iterrows():
+                            #if row_plt["macrophage_volume"] < 100000:
+                            ax[0].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rx', markersize = 15)
+                            ax[0].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rX', markersize = 15)
+                            #else:
+                            #    ax[0].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rx', markersize = 15)
+                            #    ax[1].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rx', markersize = 15)
+                        #ax.plot(y_centroids, x_centroids, 'rx', markersize = 15)
+                        plt.savefig(parameters["output_folder"] + filename + "-tumor" + time_stamp + ".pdf")
+                        plt.savefig(parameters["output_folder"] + filename + "-tumor" + time_stamp + ".png")
+
+
+
+
+    #return distances_df
+    return 0
     
 
 
