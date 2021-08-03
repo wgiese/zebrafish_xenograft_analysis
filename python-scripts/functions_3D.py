@@ -343,7 +343,10 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
     
                         properties_df.at[index_counter, "short_name"] = filename
                         properties_df.at[index_counter, "time_frame"] = tp
-                        properties_df.at[index_counter, "threshold"] = threshold
+                        if parameters["thresholding_method"]  in ["niblack","sauvola"]:
+                            properties_df.at[index_counter, "threshold"] = "local"
+                        else:
+                            properties_df.at[index_counter, "threshold"] = threshold
                         properties_df.at[index_counter, "macrophage_label"] = label_id
                         properties_df.at[index_counter, "macrophage_volume"] = macrophage_volume
                         properties_df.at[index_counter, "x_centroid"] = x_centroid
@@ -371,7 +374,8 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                         ax[0].set_title("histogram original")
                         ax[1].set_title("histogram of blurred image")
                         print("histogram %s" %threshold)
-                        if (type(threshold) == int or np.int64) or (type(threshold) == float):
+                        #if (type(threshold) == int or np.int64) or (type(threshold) == float):
+                        if not (parameters["thresholding_method"]  in ["niblack","sauvola"]):
                             print("plot histogram with threshold threshold : %s" % threshold) 
                             ax[1].axvline(threshold, color = "r", linewidth = 3)
                             ax[1].set_title("histogram of blurred image with threshold at %s" % threshold)
