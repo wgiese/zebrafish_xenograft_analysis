@@ -83,10 +83,12 @@ def thresholding_3D(parameters, image_blurred):
  
     print("Type of threshold")
     print(type(thresh))
-    if (type(thresh) == int or np.int64 or float):
-        thresh_ = thresh
-    else:
-        thresh_ = "local"
+    #if (type(thresh) == int or np.int64 or float):
+    #    thresh_ = thresh
+    #else:
+    #    thresh_ = "local"
+    print("shape of threshold")
+    print(thresh.shape)
 
     #image_mask = np.where(image_blurred > thresh, True, False)
     image_mask = image_blurred > thresh
@@ -97,4 +99,4 @@ def thresholding_3D(parameters, image_blurred):
     image_mask = clear_border(image_mask)
     image_mask = morphology.remove_small_objects(image_mask, parameters["macrophages_small_objects"], connectivity=2)
        
-    return image_mask, thresh_
+    return image_mask, thresh

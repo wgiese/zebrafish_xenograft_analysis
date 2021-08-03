@@ -359,8 +359,12 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                     time_stamp = "-" + str(tp).zfill(3)
                     
                     # debug output
-                    if hist:
-                        fig, ax = plt.subplots(1,2, figsize=(30,15))
+                    if hist:                        
+                        if parameters["thresholding_method"]  in ["niblack","sauvola"]:
+                            fig, ax = plt.subplots(1,3, figsize=(45,15))
+                        else:
+                            fig, ax = plt.subplots(1,2, figsize=(30,15))
+
                         n_bins = np.max(movie_macrophages[tp].flatten())
                         sns.histplot(movie_macrophages[tp].flatten(), bins = n_bins + 1,ax = ax[0])
                         ax[0].set_xlim(0, n_bins + 1)
@@ -375,7 +379,14 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                         ax[1].set_title("histogram of blurred image")
                         print("histogram %s" %threshold)
                         #if (type(threshold) == int or np.int64) or (type(threshold) == float):
-                        if not (parameters["thresholding_method"]  in ["niblack","sauvola"]):
+                        if parameters["thresholding_method"]  in ["niblack","sauvola"]:
+                            mean_2D_proj = np.zeros((labeled_macrophages.shape[1],labeled_macrophages.shape[2])) 
+                            for x in range(labeled_macrophages.shape[1]):
+                                for y in range(labeled_macrophages.shape[2]):
+                                    mean_2D_proj[x,y] = np.mean(threshold[:,x,y])
+                            ax[2].imshow(mean_2D_proj[:,:])
+                            ax[2].set_title("thresholding filter")
+                        else:
                             print("plot histogram with threshold threshold : %s" % threshold) 
                             ax[1].axvline(threshold, color = "r", linewidth = 3)
                             ax[1].set_title("histogram of blurred image with threshold at %s" % threshold)
