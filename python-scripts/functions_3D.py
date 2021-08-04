@@ -286,7 +286,11 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
 
         if pd.isna(filename):
             continue
-        if (experiment == "all" or experiment == filename):
+        if experiment == "annotated":
+            if not ("manually annotated" in str(row["Remarks"])):
+                continue
+
+        if (experiment == "all" or "annotated" or filename):
        
             file_path = parameters["data_folder"] + "03_Preprocessed_Data/02_3D/" + filename + '.tif'
 
@@ -324,6 +328,7 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                         print("Apply watershed ...")
                         labeled_macrophages = watershed(-distance, markers, mask=macrophages_thresh)
                     else:
+                        print("Apply skimage labelling to threshold mask ...")
                         labeled_macrophages = label(macrophages_thresh)
                         num_labels = np.max(labeled_macrophages)
 
@@ -355,7 +360,6 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                      
                         index_counter += 1
                     
-                    
                     time_stamp = "-" + str(tp).zfill(3)
                     
                     # debug output
@@ -377,8 +381,6 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                         #ax[1].set_ylim(0, 0.1*len(movie_macrophages[tp].flatten()))
                         ax[0].set_title("histogram original")
                         ax[1].set_title("histogram of blurred image")
-                        print("histogram %s" %threshold)
-                        #if (type(threshold) == int or np.int64) or (type(threshold) == float):
                         if parameters["thresholding_method"]  in ["niblack","sauvola"]:
                             mean_2D_proj = np.zeros((labeled_macrophages.shape[1],labeled_macrophages.shape[2])) 
                             for x in range(labeled_macrophages.shape[1]):
@@ -392,7 +394,7 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                             ax[1].set_title("histogram of blurred image with threshold at %s" % threshold)
                         plt.savefig(parameters["output_folder"] + filename + "-histogram" + time_stamp + ".pdf")
                         plt.savefig(parameters["output_folder"] + filename + "-histogram" + time_stamp + ".png")
-
+                        plt.close()
                     if vtk_out:
                         imageToVTK(parameters["output_folder"] + filename + time_stamp, cellData = {"macrophages" : labeled_macrophages} )
                     
@@ -424,7 +426,8 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                         #ax.plot(y_centroids, x_centroids, 'rx', markersize = 15)
                         plt.savefig(parameters["output_folder"] + filename + time_stamp + ".pdf")
                         plt.savefig(parameters["output_folder"] + filename + time_stamp + ".png")
-                    properties_df.to_csv(parameters["output_folder"] + "macrophage_properties" + experiment + ".csv")
+                        plt.close()
+                    properties_df.to_csv(parameters["output_folder"] + "macrophage_properties_" + experiment + ".csv")
 
                     if npy_out:
                         np.save(parameters["output_folder"] + filename + time_stamp + ".npy", labeled_macrophages, allow_pickle=False)

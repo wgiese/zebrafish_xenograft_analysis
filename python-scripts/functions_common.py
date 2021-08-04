@@ -80,16 +80,6 @@ def thresholding_3D(parameters, image_blurred):
     if parameters["thresholding_method"] == "local":
     	thresh = skifi.threshold_local(image_blurred)
 
- 
-    print("Type of threshold")
-    print(type(thresh))
-    #if (type(thresh) == int or np.int64 or float):
-    #    thresh_ = thresh
-    #else:
-    #    thresh_ = "local"
-    print("shape of threshold")
-    print(thresh.shape)
-
     #image_mask = np.where(image_blurred > thresh, True, False)
     image_mask = image_blurred > thresh
     del image_blurred
