@@ -277,6 +277,7 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
     properties_df = pd.DataFrame()
     index_counter = 0
 
+    print("Experiment(s): %s" % experiment)
 
     for index, row in key_file.iterrows():
         
@@ -290,12 +291,13 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
             if not ("manually annotated" in str(row["Remarks"])):
                 continue
 
-        if (experiment == "all" or "annotated" or filename):
+        if experiment in ["all","annotated",filename]:
        
             file_path = parameters["data_folder"] + "03_Preprocessed_Data/02_3D/" + filename + '.tif'
+            #file_path = parameters["data_folder"] + "02_Primary_Data/" + filename + '.tif'
 
-            pixel_volume = row["PixelSizeX"]*row["PixelSizeY"]*row["PixelSizeZ"]
-            print("Processing experiment: %s" % experiment)
+            volume_conv_px_to_mum3 = row["PixelSizeX"]*row["PixelSizeY"]*row["PixelSizeZ"]
+            print("Processing experiment: %s" % filename)
 
             if os.path.exists(file_path):
                 print(file_path)
@@ -303,6 +305,9 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                 print("Loading data...")
                 movie = np.array(io.imread(file_path))
                 movie_macrophages = movie[:, :, :, :, parameters["channel_macrophages"]]
+                if parameters["substract_tumor_from_macrophages"]:
+                    movie_tumor = movie[:, :, :, :, parameters["channel_tumor"]]
+
                 del movie
                 
                 print("Shape of the macrophage movie: ")
@@ -314,8 +319,14 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                 for tp in range(movie_macrophages.shape[0]):
                     print("Time point: " + str(tp))
                     macrophages_blurred = gaussian_filter(movie_macrophages[tp], sigma=parameters['sigma'])
-
                     macrophages_thresh, threshold = functions_common.thresholding_3D(parameters, macrophages_blurred)
+                    
+                    if parameters["substract_tumor_from_macrophages"]:
+                        print("Substracting tumor from macrophages ...")
+                        tumor_blurred = gaussian_filter(movie_tumor[tp], sigma=1)
+                        tumor_thresh, threshold_ = functions_common.thresholding_3D(parameters, tumor_blurred)
+                        macrophages_thresh[tumor_thresh] = False   
+
                     #labeled_macrophages[tp], threshold = otsu_thresholding_3D(parameters, movie_macrophages[tp])
                     
                     if parameters["segmentation_method"] == "Watershed":
@@ -328,7 +339,11 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                         print("Apply watershed ...")
                         labeled_macrophages = watershed(-distance, markers, mask=macrophages_thresh)
                     else:
+                        #image_mask = clear_border(image_mask)
+                        #image_mask = morphology.remove_small_objects(image_mask, parameters["macrophages_small_objects"], connectivity=2)
                         print("Apply skimage labelling to threshold mask ...")
+                        macrophages_thresh = clear_border(macrophages_thresh)
+                        macrophages_thresh = morphology.remove_small_objects(macrophages_thresh, parameters["macrophages_small_objects"]/volume_conv_px_to_mum3) #, connectivity=2)
                         labeled_macrophages = label(macrophages_thresh)
                         num_labels = np.max(labeled_macrophages)
 
@@ -339,7 +354,11 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                     y_centroids = []
                     for label_id in range(1, num_labels + 1):
                         macrophage_prop = regionprops(np.where(labeled_macrophages == label_id, 1, 0))
-                        macrophage_volume = len(labeled_macrophages[labeled_macrophages == label_id].flatten())*pixel_volume                        
+                        macrophage_volume_px = len(labeled_macrophages[labeled_macrophages == label_id].flatten())                       
+                        macrophage_volume_mum3 = macrophage_volume_px*volume_conv_px_to_mum3                       
+
+                        if (macrophage_volume_mum3 < parameters["macrophages_small_objects"]):
+                            continue
 
                         for props in macrophage_prop:
                             z_centroid, x_centroid, y_centroid = props.centroid
@@ -353,7 +372,8 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                         else:
                             properties_df.at[index_counter, "threshold"] = threshold
                         properties_df.at[index_counter, "macrophage_label"] = label_id
-                        properties_df.at[index_counter, "macrophage_volume"] = macrophage_volume
+                        properties_df.at[index_counter, "macrophage_volume_px"] = macrophage_volume_px
+                        properties_df.at[index_counter, "macrophage_volume_mum3"] = macrophage_volume_mum3
                         properties_df.at[index_counter, "x_centroid"] = x_centroid
                         properties_df.at[index_counter, "y_centroid"] = y_centroid
                         properties_df.at[index_counter, "z_centroid"] = z_centroid
@@ -403,6 +423,7 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                         sum_2D_proj = np.zeros((labeled_macrophages.shape[1],labeled_macrophages.shape[2])) 
                         sum_blurred_2D_proj = np.zeros((labeled_macrophages.shape[1],labeled_macrophages.shape[2])) 
                         plot_df = properties_df[properties_df["time_frame"] == tp]
+                        plot_df = plot_df[plot_df["short_name"] == filename]
                         for x in range(labeled_macrophages.shape[1]):
                             for y in range(labeled_macrophages.shape[2]):
                                 label_2D_proj[x,y] = np.max(labeled_macrophages[:,x,y])
@@ -441,63 +462,92 @@ def get_tumor_macrophage_point_distances(parameters, key_file, macrophage_proper
     
     distances_df = pd.DataFrame()
 
+    index_counter = 0
+
     for index, row in key_file.iterrows():
 
         filename = row["short_name"]
-        #print(filename)
-        #print(experiment)
+        print(filename)
+        print(experiment)
+        print(macrophage_properties["short_name"].unique())
 
         if pd.isna(filename):
             continue
-        if not (experiment in macrophage_properties["short_name"]):
+        if not (filename in macrophage_properties["short_name"].unique()):
             continue
+        
+        print("read info")
 
         if (experiment == "all" or experiment == filename):
 
             file_path = parameters["data_folder"] + "03_Preprocessed_Data/02_3D/" + filename + '.tif'
             
+            print("Row:")
+            print(row)
+
             print("Loading data...")
             movie = np.array(io.imread(file_path))
             movie_tumor = movie[:, :, :, :, parameters["channel_tumor"]]
             
-            time_points = np.max(macrophage_properties["time_frame"]) + 1
+            time_points = int(np.max(macrophage_properties["time_frame"]) + 1)
             for tp in range(time_points):
                 tumor_blurred = gaussian_filter(movie_tumor[tp], sigma=parameters['sigma'])
                 tumor_thresh, threshold = functions_common.thresholding_3D(parameters, tumor_blurred)
-                dx = parameters["PhysicalSizeX"] 
-                dy = parameters["PhysicalSizeY"] 
-                dz = parameters["PhysicalSizeZ"] 
+               
+                print("Compute distance transform ... ")
+                dx = row["PixelSizeX"] 
+                dy = row["PixelSizeY"] 
+                dz = row["PixelSizeZ"] 
                 tumor_distances = scipy.ndimage.morphology.distance_transform_edt(np.invert(tumor_thresh), sampling = [dz,dx,dy])
     
                 mean_2D_proj = np.zeros((tumor_thresh.shape[1],tumor_thresh.shape[2]))
                 sum_2D_proj = np.zeros((tumor_thresh.shape[1],tumor_thresh.shape[2]))
                 plot_df = macrophage_properties[macrophage_properties["time_frame"] == tp]
+                plot_df = plot_df[plot_df["short_name"] == filename]
                 for x in range(tumor_thresh.shape[1]):
                     for y in range(tumor_thresh.shape[2]):
                         mean_2D_proj[x,y] = np.mean(tumor_distances[:,x,y])
                         sum_2D_proj[x,y] = np.sum(tumor_thresh[:,x,y])
-                        fig, ax = plt.subplots(1,2, figsize=(30,15))
-                        ax[0].imshow(tumor[:,:])
-                        ax[1].imshow(sum_blurred_2D_proj[:,:])
-                        ax[0].set_title("sum projection")
-                        ax[1].set_title("sum projection - gaussian filter")
 
-                        for ind, row_plt in plot_df.iterrows():
-                            #if row_plt["macrophage_volume"] < 100000:
-                            ax[0].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rx', markersize = 15)
-                            ax[0].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rX', markersize = 15)
-                            #else:
-                            #    ax[0].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rx', markersize = 15)
-                            #    ax[1].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rx', markersize = 15)
-                        #ax.plot(y_centroids, x_centroids, 'rx', markersize = 15)
-                        plt.savefig(parameters["output_folder"] + filename + "-tumor" + time_stamp + ".pdf")
-                        plt.savefig(parameters["output_folder"] + filename + "-tumor" + time_stamp + ".png")
+                fig, ax = plt.subplots(1,2, figsize=(30,15))
+                ax[0].imshow(mean_2D_proj[:,:])
+                ax[1].imshow(sum_2D_proj[:,:])
+                ax[0].set_title("mean of distance transform")
+                ax[1].set_title("threshold image of tumor")
+
+                print(macrophage_properties.head())
+                for ind, row_plt in plot_df.iterrows():
+                    #if row_plt["macrophage_volume"] < 100000:
+
+                    x = int(row_plt['x_centroid'])
+                    y = int(row_plt['y_centroid'])
+                    z = int(row_plt['z_centroid'])
+                    ax[0].plot(y, x, 'rx', markersize = 15)
+                    ax[0].text(y,x,str(round(tumor_distances[z,x,y],2)))
+
+                    ax[1].plot(y, x, 'rX', markersize = 15)
+                    for col in plot_df.columns:
+                        print(col)
+                        print(row_plt[col])
+                        distances_df.at[index_counter, col] = row_plt[col]
+                        #distances_df.at[index_counter, "short_name"] = filename
+                    distances_df.at[index_counter, "tumor_distance"] = tumor_distances[z,x,y]
+                    print("Distance:")
+                    print(tumor_distances[z,x,y])
+                        
+                        #distances_df.at[index_counter, "time_frame"] = tp
+                        #distances_df.at[index_counter, "short_name"] = filename
+                    index_counter += 1
+
+                    
+                time_stamp = "-" + str(tp).zfill(3)
+                plt.savefig(parameters["output_folder"] + filename + "-tumor-distance" + time_stamp + ".pdf")
+                plt.savefig(parameters["output_folder"] + filename + "-tumor-distance" + time_stamp + ".png")
+
+                distances_df.to_csv(parameters["output_folder"] + "tumor_distances_" + experiment + ".csv")
 
 
-
-
-    #return distances_df
-    return 0
+    return distances_df
     
 
 

@@ -85,8 +85,8 @@ def thresholding_3D(parameters, image_blurred):
     del image_blurred
 
     # remove artefacts connected to border
-    # print(" Removing small objects...")
-    image_mask = clear_border(image_mask)
-    image_mask = morphology.remove_small_objects(image_mask, parameters["macrophages_small_objects"], connectivity=2)
+    #print(" Removing small objects...")
+    #image_mask = clear_border(image_mask)
+    #image_mask = morphology.remove_small_objects(image_mask, parameters["macrophages_small_objects"]) #, connectivity=2)
        
     return image_mask, thresh

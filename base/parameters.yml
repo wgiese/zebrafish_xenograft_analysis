@@ -8,6 +8,8 @@ channel_tumor : 0
 channel_macrophages: 1
 channel_vessels: 2
 
+substract_tumor_from_macrophages: False
+
 thresholding_method: "otsu" # options are "isodata", "li", "mean", "minimum", "niblack", "otsu", "sauvola", "triangle", "yen", "local" or an integer value
 window_size_thresholding: 31 # only applis for local thresholding methods
 
@@ -17,7 +19,7 @@ sigma: 1  # sigma for Gaussian filtering before Otsu thresholding
 
 segmentation_method: "ilastik"  # possibilities are "ilastik" or "Thresholding"
 
-macrophages_small_objects: 2500   # size of "debry" that will be taken out of macrophage mask
+macrophages_small_objects: 500   # physical size of "debry" in microns^3 that will be taken out of macrophage mask
 
 export_masks : npy # or vtk or none
 
