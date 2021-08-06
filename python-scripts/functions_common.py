@@ -9,6 +9,7 @@ from skimage import io
 from skimage.segmentation import clear_border
 from skimage.measure import label, regionprops
 from skimage import morphology
+from skimage import restoration
 import skimage.filters as skifi
 import tifffile as tif
 from scipy.ndimage import gaussian_filter
@@ -37,7 +38,34 @@ def read_key_file(parameters):
     key_file = pd.read_excel(file_path)
 
     return key_file
-    
+
+
+def background_substraction(parameters, image):
+
+    shape_z = 1
+    shape_x = 5
+    shape_y = 5
+    intensity = 255
+    radius = 10
+
+    print("Starting background substraction ...")
+
+    if parameters["substract_background"] == "ellipsoid_kernel": 
+        
+        print("Apply background substraction with ellipsoid kernel ((%s, %s, %s), %s)" % (shape_z, shape_x, shape_y, intensity) )
+
+        background = restoration.rolling_ball(
+            image,
+            kernel=restoration.ellipsoid_kernel((shape_z, shape_x, shape_y), intensity)
+        )
+    else:
+        print("Apply background substraction using rolling_ball method with radius: %s" % radius )
+        background = restoration.rolling_ball(image, radius = radius)
+        
+
+    return background 
+
+
 def thresholding_3D(parameters, image_blurred):
     '''
         input:

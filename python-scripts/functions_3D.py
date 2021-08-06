@@ -288,7 +288,7 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
         if pd.isna(filename):
             continue
         if experiment == "annotated":
-            if not ("manually annotated" in str(row["Remarks"])):
+            if row["macrophages_annotated"] == 0:
                 continue
 
         if experiment in ["all","annotated",filename]:
@@ -318,9 +318,21 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
 
                 for tp in range(movie_macrophages.shape[0]):
                     print("Time point: " + str(tp))
-                    macrophages_blurred = gaussian_filter(movie_macrophages[tp], sigma=parameters['sigma'])
+                    if parameters["substract_background"] in ["rolling_ball","ellipsoid_kernel"]:
+                        macrophages_bg = functions_common.background_substraction(parameters, movie_macrophages[tp])
+                    else:
+                        macrophages_bg = movie_macrophages[tp]
+
+
+                    #macrophages_blurred = gaussian_filter(macrophages_bg, sigma=parameters['sigma'])
+                    sigma_z = row["PixelSizeZ"]*parameters['sigma']
+                    sigma_x = row["PixelSizeX"]*parameters['sigma']
+                    sigma_y = row["PixelSizeY"]*parameters['sigma']
+                    macrophages_blurred = gaussian_filter(macrophages_bg, sigma=[sigma_z,sigma_x,sigma_y])
                     macrophages_thresh, threshold = functions_common.thresholding_3D(parameters, macrophages_blurred)
                     
+                    del macrophages_bg
+
                     if parameters["substract_tumor_from_macrophages"]:
                         print("Substracting tumor from macrophages ...")
                         tumor_blurred = gaussian_filter(movie_tumor[tp], sigma=1)
@@ -443,8 +455,8 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                             print("annotated postions file exists ...")
                             print(annotated_positions.head())
                             plot_annotated_df = annotated_positions[annotated_positions["time_point"] == tp]
-                            ax[1].plot(plot_annotated_df['X'], plot_annotated_df['Y'], 'gx', markersize = 15)
-                            ax[2].plot(plot_annotated_df['X'], plot_annotated_df['Y'], 'gX', markersize = 15)
+                            ax[1].plot(plot_annotated_df['X'], plot_annotated_df['Y'], 'go', markersize = 15)
+                            ax[2].plot(plot_annotated_df['X'], plot_annotated_df['Y'], 'go', markersize = 15)
 
                         else: 
                             print("annotated postions file does not exists ...")
