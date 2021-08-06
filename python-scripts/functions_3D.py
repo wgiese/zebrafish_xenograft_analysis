@@ -293,7 +293,8 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
 
         if experiment in ["all","annotated",filename]:
        
-            file_path = parameters["data_folder"] + "03_Preprocessed_Data/02_3D/" + filename + '.tif'
+            #file_path = parameters["data_folder"] + "03_Preprocessed_Data/02_3D/" + filename + '.tif'
+            file_path = parameters["data_folder"] + "04_Processed_Data/05_BGsubstracted/02_3D/" + filename + '.tif'
             #file_path = parameters["data_folder"] + "02_Primary_Data/" + filename + '.tif'
 
             volume_conv_px_to_mum3 = row["PixelSizeX"]*row["PixelSizeY"]*row["PixelSizeZ"]
