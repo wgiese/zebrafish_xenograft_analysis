@@ -18,7 +18,8 @@ window_size_thresholding: 31 # only applies for local thresholding methods
 
 otsu_thresholding: False  # Boolean if Otsu thresholding should be performed #TODO remove
 
-sigma: 1  # sigma for Gaussian filtering before Otsu thresholding
+sigma_macrophage: 1  # sigma for Gaussian filtering before Otsu thresholding
+sigma_tumor: 1  # sigma for Gaussian filtering before Otsu thresholding
 
 segmentation_method: "ilastik"  # possibilities are "ilastik" or "Thresholding"
 

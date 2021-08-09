@@ -326,9 +326,9 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
 
 
                     #macrophages_blurred = gaussian_filter(macrophages_bg, sigma=parameters['sigma'])
-                    sigma_z = row["PixelSizeZ"]*parameters['sigma']
-                    sigma_x = row["PixelSizeX"]*parameters['sigma']
-                    sigma_y = row["PixelSizeY"]*parameters['sigma']
+                    sigma_z = row["PixelSizeZ"]*parameters['sigma_macrophage']
+                    sigma_x = row["PixelSizeX"]*parameters['sigma_macrophage']
+                    sigma_y = row["PixelSizeY"]*parameters['sigma_macrophage']
                     macrophages_blurred = gaussian_filter(macrophages_bg, sigma=[sigma_z,sigma_x,sigma_y])
                     macrophages_thresh, threshold = functions_common.thresholding_3D(parameters, macrophages_blurred)
                     
@@ -515,9 +515,15 @@ def get_tumor_macrophage_point_distances(parameters, key_file, macrophage_proper
             movie = np.array(io.imread(file_path))
             movie_tumor = movie[:, :, :, :, parameters["channel_tumor"]]
             
-            time_points = int(np.max(macrophage_properties["time_frame"]) + 1)
+            single_macrophage_properties = macrophage_properties[macrophage_properties["short_name"]==filename]
+
+            time_points = int(np.max(single_macrophage_properties["time_frame"]) + 1)
             for tp in range(time_points):
-                tumor_blurred = gaussian_filter(movie_tumor[tp], sigma=parameters['sigma'])
+
+                sigma_z = row["PixelSizeZ"]*parameters['sigma_tumor']
+                sigma_x = row["PixelSizeX"]*parameters['sigma_tumor']
+                sigma_y = row["PixelSizeY"]*parameters['sigma_tumor']
+                tumor_blurred = gaussian_filter(movie_tumor[tp], sigma=[sigma_z,sigma_x,sigma_y])
                 tumor_thresh, threshold = functions_common.thresholding_3D(parameters, tumor_blurred)
                
                 print("Compute distance transform ... ")
@@ -528,28 +534,32 @@ def get_tumor_macrophage_point_distances(parameters, key_file, macrophage_proper
     
                 mean_2D_proj = np.zeros((tumor_thresh.shape[1],tumor_thresh.shape[2]))
                 sum_2D_proj = np.zeros((tumor_thresh.shape[1],tumor_thresh.shape[2]))
-                plot_df = macrophage_properties[macrophage_properties["time_frame"] == tp]
+                orig_2D_proj = np.zeros((movie_tumor[tp].shape[1],  movie_tumor[tp].shape[2]))
+                plot_df = single_macrophage_properties[single_macrophage_properties["time_frame"] == tp]
                 plot_df = plot_df[plot_df["short_name"] == filename]
                 for x in range(tumor_thresh.shape[1]):
                     for y in range(tumor_thresh.shape[2]):
                         mean_2D_proj[x,y] = np.mean(tumor_distances[:,x,y])
                         sum_2D_proj[x,y] = np.sum(tumor_thresh[:,x,y])
+                        orig_2D_proj[x,y] = np.sum(movie_tumor[tp][:,x,y])
 
-                fig, ax = plt.subplots(1,2, figsize=(30,15))
-                ax[0].imshow(mean_2D_proj[:,:])
+                fig, ax = plt.subplots(1,3, figsize=(45,15))
+                ax[0].imshow(orig_2D_proj[:,:])
                 ax[1].imshow(sum_2D_proj[:,:])
-                ax[0].set_title("mean of distance transform")
+                ax[2].imshow(mean_2D_proj[:,:])
+                ax[2].set_title("mean of distance transform")
                 ax[1].set_title("threshold image of tumor")
+                ax[0].set_title("sum projection of original")
 
-                print(macrophage_properties.head())
+                print(single_macrophage_properties.head())
                 for ind, row_plt in plot_df.iterrows():
                     #if row_plt["macrophage_volume"] < 100000:
 
                     x = int(row_plt['x_centroid'])
                     y = int(row_plt['y_centroid'])
                     z = int(row_plt['z_centroid'])
-                    ax[0].plot(y, x, 'rx', markersize = 15)
-                    ax[0].text(y,x,str(round(tumor_distances[z,x,y],2)))
+                    ax[2].plot(y, x, 'rx', markersize = 15)
+                    ax[2].text(y,x,str(round(tumor_distances[z,x,y],2)))
 
                     ax[1].plot(y, x, 'rX', markersize = 15)
                     for col in plot_df.columns:
