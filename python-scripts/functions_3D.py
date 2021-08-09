@@ -518,6 +518,7 @@ def get_tumor_macrophage_point_distances(parameters, key_file, macrophage_proper
             single_macrophage_properties = macrophage_properties[macrophage_properties["short_name"]==filename]
 
             time_points = int(np.max(single_macrophage_properties["time_frame"]) + 1)
+
             for tp in range(time_points):
 
                 sigma_z = row["PixelSizeZ"]*parameters['sigma_tumor']
@@ -585,6 +586,98 @@ def get_tumor_macrophage_point_distances(parameters, key_file, macrophage_proper
 
     return distances_df
     
+def get_tumor_volume(parameters, key_file, experiment = "all", proj_2D = True):
+    """
+    Function to extract the tumor volumes from all movies, plot them and save them in a dataframe.
+    :param parameters:
+    :param key_file:
+    :param macrophage_properties:
+    :param experiment:
+    :param proj_2D:
+    :return:
+    """
+    tumor_volume_df = pd.DataFrame()
+
+    index_counter = 0
+
+    for index, row in key_file.iterrows():
+
+        filename = row["short_name"]
+        print(filename)
+        print(experiment)
+
+        if pd.isna(filename):
+            continue
+
+        print("read info")
+
+        if (experiment == "all" or experiment == filename):
+            tumor_volume_df.at[index_counter, "short_name"] = filename
+            tumor_volume_df.at[index_counter, "dpi"] = row["dpi"]
+            tumor_volume_df.at[index_counter, "cancer_cells"] = row["cancer_cells"]
+            time_interval_in_minutes = row["Ti (min"]
+
+            file_path = parameters["data_folder"] + "03_Preprocessed_Data/02_3D/" + filename + '.tif'
+
+            print("Row:")
+            print(row)
+
+            print("Loading data...")
+            movie = np.array(io.imread(file_path))
+            movie_tumor = movie[:, :, :, :, parameters["channel_tumor"]]
+
+            del movie
+
+            time_points = movie_tumor.shape[0]
+
+            tumor_volumes = []
+            tumor_volume_percentages = []
+
+            for tp in range(time_points):
+                tumor_blurred = gaussian_filter(movie_tumor[tp], sigma=parameters['sigma'])
+                tumor_thresh, threshold = functions_common.thresholding_3D(parameters, tumor_blurred)
+                tumor_volumes.append(get_volume(tumor_thresh))
+                tumor_volume_percentages.append(get_volume_percentage(tumor_thresh))
+
+            tumor_volume_df.at[index_counter, "tumor_volumes"] = tumor_volumes
+            tumor_volume_df.at[index_counter, "tumor_volume_percentages"] = tumor_volume_percentages
+            tumor_volume_df.at[index_counter, "time"] = range(0, len(tumor_volumes)*time_interval_in_minutes, time_interval_in_minutes)
+
+            index_counter += 1
+
+
+    tumor_volume_df.to_csv(parameters["output_folder"] + "tumor_volumes_" + experiment + ".csv")
+
+    #tumor_volume_df_1dpi = tumor_volume_df[tumor_volume_df["dpi"==1]]
+    #tumor_volume_df_5dpi = tumor_volume_df[tumor_volume_df["dpi"==5]]
+
+    if experiment == 'all':
+        # plot tumor volumes
+        plt.figure()
+        #sns.lineplot(data=tumor_volume_df_1dpi, x="time", y="tumor_volumes", hue="cancer_cells")
+        sns.relplot(data=tumor_volume_df, x="time", y="tumor_volumes", hue="cancer_cells", col="dpi", col_wrap=2)
+
+        plt.xlabel('time [min]', fontsize=14)
+        plt.ylabel("Tumor volume (squ-pixel)", fontsize=14)
+        plt.tick_params(labelsize=12)
+
+        plt.savefig(parameters["output_folder"] + "tumor_volumes.png", format="png", bbox_inches="tight", dpi=150)
+        plt.savefig(parameters["output_folder"] + "tumor_volumes.pdf", format="pdf", bbox_inches="tight", dpi=150)
+        plt.close()
+
+        # plot tumor volume percentages
+        plt.figure()
+        sns.relplot(data=tumor_volume_df, x="time", y="tumor_volume_percentages", hue="cancer_cells", col="dpi", col_wrap=2)
+
+        plt.xlabel('time [min]', fontsize=14)
+        plt.ylabel("Tumor volume (squ-pixel)", fontsize=14)
+        plt.tick_params(labelsize=12)
+
+        plt.savefig(parameters["output_folder"] + "tumor_volume_percentages.png", format="png", bbox_inches="tight", dpi=150)
+        plt.savefig(parameters["output_folder"] + "tumor_volume_percentages.pdf", format="pdf", bbox_inches="tight", dpi=150)
+        plt.close()
+
+    return tumor_volume_df
 
 
 def plot_distance_map(distance_mask, out_path):
