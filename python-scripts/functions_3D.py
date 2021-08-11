@@ -450,6 +450,8 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                         ax[1].set_title("sum projection - gaussian filter")
                         ax[2].set_title("labels from segmentation")
                         
+                        legend = 0
+
                         annotated_positions_file = parameters["data_folder"] + "04_Processed_Data/01_Annotated_Macrophages/" + filename + '.csv'
                         if os.path.exists(annotated_positions_file):
                             annotated_positions = pd.read_csv(annotated_positions_file, sep = ";")
@@ -457,20 +459,27 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                             print(annotated_positions.head())
                             plot_annotated_df = annotated_positions[annotated_positions["time_point"] == tp]
                             ax[1].plot(plot_annotated_df['X'], plot_annotated_df['Y'], 'go', markersize = 15)
+                            if legend == 0:
+                                ax[2].plot(plot_annotated_df['X'], plot_annotated_df['Y'], 'go', markersize = 15, label='macrophages by annotation')
+                                legend = 1
                             ax[2].plot(plot_annotated_df['X'], plot_annotated_df['Y'], 'go', markersize = 15)
 
                         else: 
                             print("annotated postions file does not exists ...")
 
-
+                        legend = 0
                         for ind, row_plt in plot_df.iterrows():
                             #if row_plt["macrophage_volume"] < 100000:
-                            ax[1].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rx', markersize = 15)
+                            ax[1].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rX', markersize = 15)
+                            if legend == 0:
+                                ax[2].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rX', markersize = 15, label='macrophages by algorithm')
+                                legend = 1
                             ax[2].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rX', markersize = 15)
                             #else:
                             #    ax[0].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rx', markersize = 15)
                             #    ax[1].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rx', markersize = 15)
                         #ax.plot(y_centroids, x_centroids, 'rx', markersize = 15)
+                        ax[2].legend()
                         plt.savefig(parameters["output_folder"] + filename + time_stamp + ".pdf")
                         plt.savefig(parameters["output_folder"] + filename + time_stamp + ".png")
                         plt.close()
@@ -548,10 +557,10 @@ def get_tumor_macrophage_point_distances(parameters, key_file, macrophage_proper
                 ax[0].imshow(orig_2D_proj[:,:])
                 ax[1].imshow(sum_2D_proj[:,:])
                 ax[2].imshow(mean_2D_proj[:,:])
-                ax[2].set_title("mean of distance transform")
-                ax[1].set_title("threshold image of tumor")
-                ax[0].set_title("sum projection of original")
-
+                ax[0].set_title("sum projection of tumor channel")
+                ax[1].set_title("threshold image of tumor channel")
+                ax[2].set_title("mean along z-axis of distance transform")
+                
                 print(single_macrophage_properties.head())
                 for ind, row_plt in plot_df.iterrows():
                     #if row_plt["macrophage_volume"] < 100000:
