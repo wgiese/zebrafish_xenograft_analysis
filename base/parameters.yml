@@ -10,6 +10,9 @@ channel_vessels: 2
 
 
 substract_background: "None" # or None to skip background substraction
+ellipsoid_kernel_size: 5
+ellipsoid_kernel_intensity: 5
+
 
 substract_tumor_from_macrophages: False
 

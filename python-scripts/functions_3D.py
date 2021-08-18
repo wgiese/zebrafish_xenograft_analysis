@@ -2,6 +2,7 @@ import h5py
 import numpy as np
 from pyevtk.hl import imageToVTK
 from matplotlib import pyplot as plt
+from matplotlib import cm
 import seaborn as sns
 import scipy.ndimage
 import os
@@ -292,9 +293,10 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                 continue
 
         if experiment in ["all","annotated",filename]:
-       
-            #file_path = parameters["data_folder"] + "03_Preprocessed_Data/02_3D/" + filename + '.tif'
-            file_path = parameters["data_folder"] + "04_Processed_Data/05_BGsubstracted/02_3D/" + filename + '.tif'
+            if parameters["substract_background"] in ["rolling_ball","ellipsoid_kernel"]:     
+                file_path = parameters["data_folder"] + "03_Preprocessed_Data/02_3D/" + filename + '.tif'
+            else:
+                file_path = parameters["data_folder"] + "04_Processed_Data/05_BGsubstracted/02_3D/" + filename + '.tif'
             #file_path = parameters["data_folder"] + "02_Primary_Data/" + filename + '.tif'
 
             volume_conv_px_to_mum3 = row["PixelSizeX"]*row["PixelSizeY"]*row["PixelSizeZ"]
@@ -320,7 +322,7 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                 for tp in range(movie_macrophages.shape[0]):
                     print("Time point: " + str(tp))
                     if parameters["substract_background"] in ["rolling_ball","ellipsoid_kernel"]:
-                        macrophages_bg = functions_common.background_substraction(parameters, movie_macrophages[tp])
+                        macrophages_bg = functions_common.background_substraction(parameters, movie_macrophages[tp], row["PixelSizeZ"], row["PixelSizeX"], row["PixelSizeY"])
                     else:
                         macrophages_bg = movie_macrophages[tp]
 
@@ -332,7 +334,9 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                     macrophages_blurred = gaussian_filter(macrophages_bg, sigma=[sigma_z,sigma_x,sigma_y])
                     macrophages_thresh, threshold = functions_common.thresholding_3D(parameters, macrophages_blurred)
                     
-                    del macrophages_bg
+                    
+
+                    #del macrophages_bg
 
                     if parameters["substract_tumor_from_macrophages"]:
                         print("Substracting tumor from macrophages ...")
@@ -433,6 +437,7 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                     
                     if proj_2D:
                         label_2D_proj = np.zeros((labeled_macrophages.shape[1],labeled_macrophages.shape[2])) 
+                        sum_bg_2D_proj = np.zeros((labeled_macrophages.shape[1],labeled_macrophages.shape[2])) 
                         sum_2D_proj = np.zeros((labeled_macrophages.shape[1],labeled_macrophages.shape[2])) 
                         sum_blurred_2D_proj = np.zeros((labeled_macrophages.shape[1],labeled_macrophages.shape[2])) 
                         plot_df = properties_df[properties_df["time_frame"] == tp]
@@ -442,13 +447,19 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                                 label_2D_proj[x,y] = np.max(labeled_macrophages[:,x,y])
                                 sum_2D_proj[x,y] = np.sum(movie_macrophages[tp][:,x,y])
                                 sum_blurred_2D_proj[x,y] = np.max(macrophages_blurred[:,x,y])
-                        fig, ax = plt.subplots(1,3, figsize=(45,15))
-                        ax[0].imshow(sum_2D_proj[:,:])
-                        ax[1].imshow(sum_blurred_2D_proj[:,:])
-                        ax[2].imshow(label_2D_proj[:,:])
-                        ax[0].set_title("sum projection")
-                        ax[1].set_title("sum projection - gaussian filter")
-                        ax[2].set_title("labels from segmentation")
+                                sum_bg_2D_proj[x,y] = np.max(macrophages_bg[:,x,y])
+                        
+                        fig, ax = plt.subplots(1,4, figsize=(60,15))
+                        p = ax[0].imshow(sum_2D_proj[:,:], cm.binary)
+                        #cbar = fig.colorbar(p, ax = ax[0])
+                        ax[1].imshow(sum_bg_2D_proj[:,:], cm.binary)
+                        ax[2].imshow(sum_blurred_2D_proj[:,:], cm.binary)
+                        ax[3].imshow(label_2D_proj[:,:], cm.Set3)
+                        ax[0].set_title("sum projection - original")
+                        ax[1].set_title("sum projection - background removed")
+                        ax[2].set_title("sum projection - gaussian filter")
+                        ax[3].set_title("labels from segmentation")
+                        
                         
                         legend = 0
 
@@ -458,7 +469,7 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                             print("annotated postions file exists ...")
                             print(annotated_positions.head())
                             plot_annotated_df = annotated_positions[annotated_positions["time_point"] == tp]
-                            ax[1].plot(plot_annotated_df['X'], plot_annotated_df['Y'], 'go', markersize = 15)
+                            ax[3].plot(plot_annotated_df['X'], plot_annotated_df['Y'], 'go', markersize = 15)
                             if legend == 0:
                                 ax[2].plot(plot_annotated_df['X'], plot_annotated_df['Y'], 'go', markersize = 15, label='macrophages by annotation')
                                 legend = 1
@@ -466,20 +477,21 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
 
                         else: 
                             print("annotated postions file does not exists ...")
-
-                        legend = 0
-                        for ind, row_plt in plot_df.iterrows():
-                            #if row_plt["macrophage_volume"] < 100000:
-                            ax[1].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rX', markersize = 15)
-                            if legend == 0:
-                                ax[2].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rX', markersize = 15, label='macrophages by algorithm')
-                                legend = 1
-                            ax[2].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rX', markersize = 15)
-                            #else:
-                            #    ax[0].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rx', markersize = 15)
-                            #    ax[1].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rx', markersize = 15)
-                        #ax.plot(y_centroids, x_centroids, 'rx', markersize = 15)
-                        ax[2].legend()
+                        if len(plot_df.index) > 1:
+                            legend = 0
+                            for ind, row_plt in plot_df.iterrows():
+                                #if row_plt["macrophage_volume"] < 100000:
+                                #ax[1].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rX', markersize = 15)
+                                if legend == 0:
+                                    ax[2].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rX', markersize = 15, label='macrophages by algorithm')
+                                    legend = 1
+                                ax[2].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rX', markersize = 15)
+                                #else:
+                                #    ax[0].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rx', markersize = 15)
+                                #    ax[1].plot(row_plt['y_centroid'], row_plt['x_centroid'], 'rx', markersize = 15)
+                            #ax.plot(y_centroids, x_centroids, 'rx', markersize = 15)
+                            ax[2].legend()
+                        plt.tight_layout()
                         plt.savefig(parameters["output_folder"] + filename + time_stamp + ".pdf")
                         plt.savefig(parameters["output_folder"] + filename + time_stamp + ".png")
                         plt.close()

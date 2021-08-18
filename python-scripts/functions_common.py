@@ -40,13 +40,17 @@ def read_key_file(parameters):
     return key_file
 
 
-def background_substraction(parameters, image):
+def background_substraction(parameters, image, dz, dx, dy):
 
-    shape_z = 1
-    shape_x = 5
-    shape_y = 5
-    intensity = 255
+    shape_z = dz*parameters["ellipsoid_kernel_size"]
+    shape_x = dx*parameters["ellipsoid_kernel_size"]
+    shape_y = dy*parameters["ellipsoid_kernel_size"]
+    intensity = parameters["ellipsoid_kernel_intensity"]
+
     radius = 10
+
+    print("Perform total variation denoising ...")
+    image = restoration.denoise_tv_chambolle(image)
 
     print("Starting background substraction ...")
 
@@ -61,9 +65,10 @@ def background_substraction(parameters, image):
     else:
         print("Apply background substraction using rolling_ball method with radius: %s" % radius )
         background = restoration.rolling_ball(image, radius = radius)
-        
+ 
+    result = image - background 
 
-    return background 
+    return result 
 
 
 def thresholding_3D(parameters, image_blurred):
