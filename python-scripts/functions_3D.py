@@ -292,7 +292,7 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
             if row["macrophages_annotated"] == 0:
                 continue
 
-        if experiment in ["all", "annotated", filename]:
+        if (experiment in ["all", "annotated", filename]) or (experiment in filename):
             file_path = parameters["data_folder"] + parameters["image_file_path"] + filename + '.tif'
             #file_path = parameters["data_folder"] + "02_Primary_Data/" + filename + '.tif'
 
