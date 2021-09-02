@@ -33,7 +33,7 @@ def read_parameters():
 
 
 def read_key_file(parameters):
-    file_path = parameters['data_folder'] + "00_Extra/" + parameters["key_file_name"]
+    file_path = parameters['data_folder'] + parameters["key_file_path"]
 
     key_file = pd.read_excel(file_path)
 

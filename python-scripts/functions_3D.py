@@ -292,12 +292,18 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
             if row["macrophages_annotated"] == 0:
                 continue
 
-        if experiment in ["all","annotated",filename]:
-            if parameters["substract_background"] in ["rolling_ball","ellipsoid_kernel"]:     
-                file_path = parameters["data_folder"] + "03_Preprocessed_Data/02_3D/" + filename + '.tif'
-            else:
-                file_path = parameters["data_folder"] + "04_Processed_Data/05_BGsubstracted/02_3D/" + filename + '.tif'
+        if experiment in ["all", "annotated", filename]:
+            file_path = parameters["data_folder"] + parameters["image_file_path"] + filename + '.tif'
             #file_path = parameters["data_folder"] + "02_Primary_Data/" + filename + '.tif'
+
+            
+            properties_df.at[index_counter, "short_name"] = filename
+            properties_df.at[index_counter, "status"] = "not processed"
+
+            if np.isnan(row["PixelSizeX"]):
+                properties_df.at[index_counter, "status"] = "pixel size is missing"
+                index_counter += 1
+                continue
 
             volume_conv_px_to_mum3 = row["PixelSizeX"]*row["PixelSizeY"]*row["PixelSizeZ"]
             print("Processing experiment: %s" % filename)
@@ -394,6 +400,7 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                         properties_df.at[index_counter, "x_centroid"] = x_centroid
                         properties_df.at[index_counter, "y_centroid"] = y_centroid
                         properties_df.at[index_counter, "z_centroid"] = z_centroid
+                        properties_df.at[index_counter, "status"] = "OK"
                      
                         index_counter += 1
                     
@@ -501,7 +508,8 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                         np.save(parameters["output_folder"] + filename + time_stamp + ".npy", labeled_macrophages, allow_pickle=False)
             else:
                 print("Path %s does not exist" % file_path)
-
+                properties_df.at[index_counter, "status"] = "OK"
+                index_counter += 1
 
     return properties_df 
 

@@ -1,34 +1,48 @@
+
+
 data_folder: "/folder/to/data/"
 output_folder: "/folder/to/output/"
-key_file_name: "Details_imaging_data_3D.xls"
+key_file_path: "/00_Extra/Details_imaging_data_3D.xls"
+image_file_path: "/03_Preprocessed_Data/02_3D/"
+#image_file_path: "/04_Processed_Data/05_BGsubstracted/02_3D/" # for background substracted images
 
 
-dimension: "2D"   # "2D" or "3D"
+
+dimension: "2D"   # "2D" or "3D" 
 channel_tumor : 0
 channel_macrophages: 1
 channel_vessels: 2
 
+# not clear if there is an overlay or if this is needed TODO: check
+substract_tumor_from_macrophages: False
+
+# Filters 
+
+## rolling ball background substraction
 
 substract_background: "None" # or None to skip background substraction
 ellipsoid_kernel_size: 5
 ellipsoid_kernel_intensity: 5
 
 
-substract_tumor_from_macrophages: False
-
-thresholding_method: "otsu" # options are "isodata", "li", "mean", "minimum", "niblack", "otsu", "sauvola", "triangle", "yen", "local" or an integer value
-window_size_thresholding: 31 # only applies for local thresholding methods
-
-otsu_thresholding: False  # Boolean if Otsu thresholding should be performed #TODO remove
+## anisotropic Gaussian blur, not that sigma is a scaling factor here, which is multiplied by the pixel size PhysicalSizeX,Y,Z to obtain the "physical" anisotropic sigma
 
 sigma_macrophage: 1  # sigma for Gaussian filtering before Otsu thresholding
 sigma_tumor: 1  # sigma for Gaussian filtering before Otsu thresholding
 
-segmentation_method: "ilastik"  # possibilities are "ilastik" or "Thresholding"
+## thesholding method
 
-macrophages_small_objects: 500   # physical size of "debry" in microns^3 that will be taken out of macrophage mask
+thresholding_method: "otsu" # options are "isodata", "li", "mean", "minimum", "niblack", "otsu", "sauvola", "triangle", "yen", "local" or an integer value
+window_size_thresholding: 31 # only applies for local thresholding methods
 
+
+## segmentation parameters
+
+macrophages_small_objects: 350   # physical size of "debry" in microns^3 that will be taken out of macrophage mask
 export_masks : npy # or vtk or none
+
+# otsu_thresholding: False  # Boolean if Otsu thresholding should be performed #TODO remove
+# segmentation_method: "ilastik"  # possibilities are "ilastik" or "Thresholding" #TODO remove
 
 
 # cellpose segmentation
