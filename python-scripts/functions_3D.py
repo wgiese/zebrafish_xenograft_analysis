@@ -455,8 +455,8 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                             for y in range(labeled_macrophages.shape[2]):
                                 label_2D_proj[x,y] = np.max(labeled_macrophages[:,x,y])
                                 sum_2D_proj[x,y] = np.sum(movie_macrophages[tp][:,x,y])
-                                sum_blurred_2D_proj[x,y] = np.max(macrophages_blurred[:,x,y])
-                                sum_bg_2D_proj[x,y] = np.max(macrophages_bg[:,x,y])
+                                sum_blurred_2D_proj[x,y] = np.sum(macrophages_blurred[:,x,y])
+                                sum_bg_2D_proj[x,y] = np.sum(macrophages_bg[:,x,y])
                         
                         fig, ax = plt.subplots(1,4, figsize=(60,15))
                         p = ax[0].imshow(sum_2D_proj[:,:], cm.binary)

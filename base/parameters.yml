@@ -20,15 +20,15 @@ substract_tumor_from_macrophages: False
 
 ## rolling ball background substraction
 
-substract_background: "None" # or None to skip background substraction
+substract_background: "None" # "rolling_ball", "ellipsoid_kernel" or "None" to skip background substraction
 ellipsoid_kernel_size: 5
 ellipsoid_kernel_intensity: 5
 
 
 ## anisotropic Gaussian blur, not that sigma is a scaling factor here, which is multiplied by the pixel size PhysicalSizeX,Y,Z to obtain the "physical" anisotropic sigma
 
-sigma_macrophage: 1  # sigma for Gaussian filtering before Otsu thresholding
-sigma_tumor: 1  # sigma for Gaussian filtering before Otsu thresholding
+sigma_macrophage: 10  # sigma for Gaussian filtering before Otsu thresholding
+sigma_tumor: 10  # sigma for Gaussian filtering before Otsu thresholding
 
 ## thesholding method
 
@@ -38,6 +38,7 @@ window_size_thresholding: 31 # only applies for local thresholding methods
 
 ## segmentation parameters
 
+segmentation_method: "common" # or "Watershed"
 macrophages_small_objects: 350   # physical size of "debry" in microns^3 that will be taken out of macrophage mask
 export_masks : npy # or vtk or none
 
