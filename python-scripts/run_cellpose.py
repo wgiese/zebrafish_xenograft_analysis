@@ -66,7 +66,8 @@ print(img.shape)
 #print(img.shape)
 
 
-model = models.Cellpose(gpu=True, model_type='cyto')
+model = models.Cellpose(gpu=False, model_type='cyto')
+#model = models.Cellpose(gpu=True, model_type='cyto')
 
 # choice for greyscale
 channels = [0,0]
@@ -76,7 +77,6 @@ masks, flows, styles, diams = model.eval(img, diameter=40, channels=channels, an
 io.masks_flows_to_seg(img , masks, flows, diams, output_filepath , channels)
 
 # load result
-segemnetation
 cellpose_seg = np.load(output_filepath + "_seg.npy", allow_pickle=True)
 
 mask = cellpose_seg.item()['masks']
