@@ -65,9 +65,8 @@ print(img.shape)
 
 #print(img.shape)
 
-
-model = models.Cellpose(gpu=False, model_type='cyto')
-#model = models.Cellpose(gpu=True, model_type='cyto')
+use_gpu = parameters["use_gpu"]
+model = models.Cellpose(gpu=use_gpu, model_type='cyto')
 
 # choice for greyscale
 channels = [0,0]

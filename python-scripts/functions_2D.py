@@ -18,35 +18,13 @@ import yaml
 font = {'family': 'normal', 'weight': 'bold', 'size': 22}
 matplotlib.rc('font', **font)
 
-
-def read_parameters():
-    parameters = dict()
-
-    with open("../base/parameters.yml") as file:
-        parameters = yaml.load(file, Loader=yaml.FullLoader)
-    with open("../local/parameters.yml") as file:
-        parameters_local = yaml.load(file, Loader=yaml.FullLoader)
-
-    # overwrite global parameters with local setting
-    for key in parameters_local:
-        parameters[key] = parameters_local[key]
-
-    return parameters
-
-
-def read_key_file(parameters):
-    file_path = parameters['data_folder'] + "00_Extra/" + parameters["key_file_name"]
-
-    key_file = pd.read_excel(file_path)
-
-    return key_file
-
-
 #######################################################################################################################
 #                                            OTSU THRESHOLDING FUNCTIONS                                              #
 #######################################################################################################################
 
 def otsu_thresholding_3D(parameters, image):
+    #TODO: why is this function in run_2D ? Only needed in run_3D ?
+
     # use Gaussian filter to smooth images
     # print(" Gaussian filtering...")
     image_labeled = gaussian_filter(image, sigma=parameters['sigma'])
@@ -67,6 +45,8 @@ def otsu_thresholding_3D(parameters, image):
 
 
 def otsu_thresholding_3D_allFrames(parameters, movie):
+    #TODO: why is this function in run_2D ? Only needed in run_3D ?
+
     im_tumor = movie[:, :, :, :, 0]
     im_macrophages = movie[:, :, :, :, 1]
     im_vessels = movie[:, :, :, :, 2]
@@ -120,7 +100,7 @@ def otsu_loop_over_key_file(parameters, key_file):
     :param key_file:
     :return:
     """
-    for file in key_file["New name"].unique():
+    for file in key_file["short_name"].unique():
         # file_path = parameters["data_folder"] + "03_Processed_Data/3D/" + file + '.tif'
         file_path = parameters["data_folder"] + "05_BGsubtracted/02_3D/" + file + '.tif'
         if os.path.exists(file_path):
@@ -132,10 +112,6 @@ def otsu_loop_over_key_file(parameters, key_file):
 
                 print("Loading data...")
                 movie = np.array(io.imread(file_path))
-
-                # im_tumor = movie[:, :, :, :, 0]
-                # im_macrophages = movie[:, :, :, :, 1]
-                # im_vessels = movie[:, :, :, :, 2]
 
                 # Otsu thresholding
                 print(" Otsu thresholding...")
@@ -260,6 +236,10 @@ def get_volume(frame):
     return np.count_nonzero(frame > 0)
 
 
+def get_volume_percentage(frame):
+    return 100.0*len(frame[frame == True])/len(frame.flatten())
+
+
 def get_labeled_macrophage_image(parameters, macrophage_mask):
     all_frames_labeled = np.zeros(macrophage_mask.shape)
 
@@ -292,11 +272,18 @@ def do_analysis_on_all_files(parameters, key_file):
     all_vessel_volumes = []
     all_mean_macrophage_to_vessel_distances = []
 
-    for file in key_file["New name"].unique():
+    all_macrophage_percentages = []
+    all_tumor_percentages = []
+    all_vessel_percentages = []
+
+       
+
+    #for file in key_file["New name"].unique():
+    for file in key_file["short_name"].unique():
         filenames.append(file)
 
         # only load mask if at least one channel is good enough
-        if (key_file[key_file['New name'] == file][seg_method + '_C1'] == 1).any() or (key_file[key_file['New name'] == file][seg_method + '_C2'] == 1).any() or (key_file[key_file['New name'] == file][seg_method + '_C3'] == 1).any():
+        if (key_file[key_file['short_name'] == file][seg_method + '_C1'] == 1).any() or (key_file[key_file['short_name'] == file][seg_method + '_C2'] == 1).any() or (key_file[key_file['short_name'] == file][seg_method + '_C3'] == 1).any():
             path_for_checking_frames = parameters['output_folder'] + '05_Data_Analysis/' + dim_folder + '03_Check_masks/' + seg_method + '/' + file + '/'
             if not os.path.exists(path_for_checking_frames):
                 os.makedirs(path_for_checking_frames)
@@ -328,7 +315,7 @@ def do_analysis_on_all_files(parameters, key_file):
 
                 # only use probabilities higher than 0.5
                 tumor_mask = np.where(np.array(tumor_h5) > 0.5, True, False)
-                macrophage_mask = np.where(np.array(macrophage_h5) > 0.5, True, False)
+                macrophage_mask = np.where(np.array(macrophage_h5) > 0.9, True, False)
                 vessel_mask = np.where(np.array(vessel_h5) > 0.5, True, False)
 
             else:
@@ -340,9 +327,10 @@ def do_analysis_on_all_files(parameters, key_file):
             ##### Analysis functions
 
             # check if tumor mask looks okay
-            if (key_file[key_file['New name'] == file][seg_method + '_C1'] == 1).any():
+            if (key_file[key_file['short_name'] == file][seg_method + '_C1'] == 1).any():
                 print('    Get tumor volumes...')
                 tumor_volumes = []
+                tumor_percentages = []
                 for frame in range(tumor_mask.shape[0]):
                     # save that frame for checking mask by eye...
                     fig, ax = plt.subplots(figsize=(15, 15))
@@ -353,39 +341,54 @@ def do_analysis_on_all_files(parameters, key_file):
                     plot_distance_map(tumor_mask[frame], path_for_checking_frames + 'tumor_distance_map_frame' + str(frame) + '.png')
 
                     tumor_volumes.append(get_volume(tumor_mask[frame]))
+                    tumor_percentages.append(get_volume_percentage(tumor_mask[frame]))
                 all_tumor_volumes.append(tumor_volumes)
+                all_tumor_percentages.append(tumor_percentages)
             else:
                 all_tumor_volumes.append(None)
+                all_tumor_percentages.append(None)
 
             # check if macrophage mask looks okay
-            if (key_file[key_file['New name'] == file][seg_method + '_C2'] == 1).any():
+            if (key_file[key_file['short_name'] == file][seg_method + '_C2'] == 1).any():
                 labeled_macrophage_mask = get_labeled_macrophage_image(parameters, macrophage_mask)
                 print('    Get macrophage volumes and number...')
                 macrophage_volumes = []
                 macrophage_volumes_labeled = []
                 macrophage_number = []
+                macrophage_percentages = []
                 for frame in range(macrophage_mask.shape[0]):
                     fig, ax = plt.subplots(figsize=(15, 15))
                     ax.imshow(macrophage_mask[frame, :, :])
-                    plt.savefig(path_for_checking_frames + 'macrophage_frame' + str(frame) + '.png', format="png",
+                    plt.savefig(path_for_checking_frames + 'macrophage_cutoff90percent_frame' + str(frame) + '.png', format="png",
                                  bbox_inches="tight", dpi=100)
+                    plt.close()
+
+                    fig, ax = plt.subplots(figsize=(15, 15))
+                    ax.imshow(labeled_macrophage_mask[frame, :, :])
+                    plt.savefig(path_for_checking_frames + 'macrophage_labeled_cutoff90percent_frame' + str(frame) + '.png',
+                                format="png",
+                                bbox_inches="tight", dpi=100)
                     plt.close()
 
                     macrophage_volumes.append(get_volume(macrophage_mask[frame]))
                     macrophage_volumes_labeled.append(get_volume(labeled_macrophage_mask[frame]))
                     macrophage_number.append(get_macrophage_number(labeled_macrophage_mask[frame]))
+                    macrophage_percentages.append(get_volume_percentage(macrophage_mask[frame]))
                 all_macrophage_volumes.append(macrophage_volumes)
                 all_macrophage_volumes_labeled.append(macrophage_volumes_labeled)
                 all_macrophage_number.append(macrophage_number)
+                all_macrophage_percentages.append(macrophage_percentages)
             else:
                 all_macrophage_volumes.append(None)
                 all_macrophage_volumes_labeled.append(None)
                 all_macrophage_number.append(None)
+                all_macrophage_percentages.append(None)
 
             # check if vessel mask looks okay
-            if (key_file[key_file['New name'] == file][seg_method + '_C3'] == 1).any():
+            if (key_file[key_file['short_name'] == file][seg_method + '_C3'] == 1).any():
                 print('    Get vessel volumes...')
                 vessel_volumes = []
+                vessel_percentages = []
                 for frame in range(vessel_mask.shape[0]):
                     fig, ax = plt.subplots(figsize=(15, 15))
                     ax.imshow(vessel_mask[frame, :, :])
@@ -396,13 +399,16 @@ def do_analysis_on_all_files(parameters, key_file):
                     plot_distance_map(vessel_mask[frame], path_for_checking_frames + 'vessel_distance_map_frame' + str(frame) + '.png')
 
                     vessel_volumes.append(get_volume(vessel_mask[frame]))
+                    vessel_percentages.append(get_volume_percentage(vessel_mask[frame]))
                 all_vessel_volumes.append(vessel_volumes)
+                all_vessel_percentages.append(vessel_percentages)
             else:
                 all_vessel_volumes.append(None)
+                all_vessel_percentages(None)
 
             # if tumor and macrophage mask look okay, go for the distance transform :)
-            if (key_file[key_file['New name'] == file][seg_method + '_C1'] == 1).any() and \
-                    (key_file[key_file['New name'] == file][seg_method + '_C2'] == 1).any():
+            if (key_file[key_file['short_name'] == file][seg_method + '_C1'] == 1).any() and \
+                    (key_file[key_file['short_name'] == file][seg_method + '_C2'] == 1).any():
                 print('    Get macrophage to tumor distances...')
                 mean_macrophage_to_tumor_distances = []
                 mean_macrophage_to_tumor_distances_labeled = []
@@ -422,7 +428,7 @@ def do_analysis_on_all_files(parameters, key_file):
                 all_mean_macrophage_to_tumor_distances_labeled.append(None)
 
             # if vessel and macrophage masks look okay, go fo the distance transform :)
-            if (key_file[key_file['New name'] == file][seg_method + '_C2'] == 1).any() and (key_file[key_file['New name'] == file][seg_method + '_C3'] == 1).any():
+            if (key_file[key_file['short_name'] == file][seg_method + '_C2'] == 1).any() and (key_file[key_file['short_name'] == file][seg_method + '_C3'] == 1).any():
                 print('    Get macrophage to vessel distances...')
                 mean_macrophage_to_vessel_distances = []
                 for frame in range(macrophage_mask.shape[0]):
@@ -443,13 +449,20 @@ def do_analysis_on_all_files(parameters, key_file):
             all_vessel_volumes.append(None)
             all_mean_macrophage_to_vessel_distances.append(None)
 
+            all_tumor_percentages.append(None)
+            all_macrophage_percentages.append(None)
+            all_vessel_percentages.append(None)
+
     df = pd.DataFrame({
-        'New name': filenames,
+        'short_name': filenames,
         'tumor_volume': all_tumor_volumes,
+        'tumor_volume_percentage': all_tumor_percentages,
         'macrophage_volume': all_macrophage_volumes,
         'macrophage_volume_labeled': all_macrophage_volumes_labeled,
         'macrophage_number': all_macrophage_number,
+        'macrophage_volume_percentage': all_macrophage_percentages,
         'vessel_volume': all_vessel_volumes,
+        'vessel_volume_percentage': all_vessel_percentages,
         'mean_macrophage_to_tumor_distances': all_mean_macrophage_to_tumor_distances,
         'mean_macrophage_to_vessel_distances': all_mean_macrophage_to_vessel_distances,
         'mean_macrophage_to_tumor_distances_labeled': all_mean_macrophage_to_tumor_distances_labeled
@@ -477,12 +490,12 @@ def plot_column(parameters, df, type):
 
     plt.figure()
     ax = plt.gca()
-    for exp in df['New name'].unique():
+    for exp in df['short_name'].unique():
         # only plot if tumor volume data exists
-        if df[df['New name'] == exp][type].any():
-            time = range(0, len(df[df['New name'] == exp][type].any())*df[df['New name'] == exp]['Ti (min)'].values[0], df[df['New name'] == exp]['Ti (min)'].values[0])
+        if df[df['short_name'] == exp][type].any():
+            time = range(0, len(df[df['short_name'] == exp][type].any())*df[df['New name'] == exp]['Ti (min)'].values[0], df[df['New name'] == exp]['Ti (min)'].values[0])
             color = next(ax._get_lines.prop_cycler)['color']
-            plt.plot(time, df[df['New name'] == exp][type].any(), color=color, label=exp)
+            plt.plot(time, df[df['short_name'] == exp][type].any(), color=color, label=exp)
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', prop={'size': 10})
     plt.xlabel('time [min]', fontsize=14)
     plt.ylabel(type, fontsize=14)
@@ -495,10 +508,102 @@ def plot_column(parameters, df, type):
 
 def plot_all(parameters, df):
     plot_column(parameters, df, 'tumor_volume')
+    plot_column(parameters, df, 'tumor_volume_percentage')
     plot_column(parameters, df, 'macrophage_volume')
     plot_column(parameters, df, 'macrophage_volume_labeled')
     plot_column(parameters, df, 'macrophage_number')
+    plot_column(parameters, df, 'macrophage_volume_percentage')
     plot_column(parameters, df, 'mean_macrophage_to_tumor_distances')
     plot_column(parameters, df, 'vessel_volume')
+    plot_column(parameters, df, 'vessel_volume_percentage')
     plot_column(parameters, df, 'mean_macrophage_to_vessel_distances')
     plot_column(parameters, df, 'mean_macrophage_to_tumor_distances_labeled')
+
+
+#######################################################################################################################
+#                                                 Macrophages number                                                  #
+#######################################################################################################################
+
+def compare_macrophage_number_and_volume(parameters, key_file, df):
+    for file in df["New name"].unique():
+        path = parameters["csv_path"] + file + "_MC_ROI/CSV_files/"
+        if os.path.exists(path):
+            print("Comparing annotated macrophages and macrophage volume for " + file)
+            # read all csv files from path and sort them according to frame number
+            all_files = os.listdir(path)
+            csv_files = []
+            for csv_file in all_files:
+                if csv_file.endswith('.csv'):
+                    csv_files.append(csv_file)
+
+            csv_files = sorted(csv_files)
+            #print(csv_files)
+
+            frames = []
+            statistics_df = pd.DataFrame()
+            for i in range(len(csv_files)):
+                filename = csv_files[i]
+                position_df = pd.read_csv(path + filename)
+                position_df["frame"] = i + 1
+                position_df["filename"] = filename
+
+                statistics_df.at[i, "frame"] = i + 1
+                statistics_df.at[i, "macrophage_number"] = len(position_df["X"])
+                statistics_df.at[i, "filename"] = filename
+                frames.append(position_df)
+
+            positions_df = pd.concat(frames)
+
+            # reset index
+            positions_df.reset_index(drop=True, inplace=True)
+
+            #print(positions_df)
+            #print(statistics_df)
+
+            if (key_file[key_file['short_name'] == file][parameters["segmentation_method"] + '_C2'] == 1).any():
+                macrophage_volume = df[df['short_name'] == file]["macrophage_volume"].any()
+
+                fig, ax = plt.subplots(figsize=(15, 10))
+                time = range(1, len(macrophage_volume) + 1)
+                ax2 = ax.twinx()
+                ax2.plot(time, macrophage_volume, marker='x', color="red", linestyle="dashed", linewidth=2,
+                         markersize=10)
+                ax2.set_ylabel("macrophage volume")
+                ax2.set_xlabel("time frame")
+                #ax2.set_ylim(0, 0.08)
+                ax.bar(statistics_df["frame"], statistics_df["macrophage_number"], color="black")
+                ax.set_ylabel("macrophage number")
+
+                ax.set_title(file)
+                fig.savefig(path + parameters['segmentation_method'] + '_macrophage-number-to-volume-comparison.png', format="png", bbox_inches="tight", dpi=150)
+                fig.savefig(path + parameters['segmentation_method'] + '_macrophage-number-to-volume-comparison.pdf', format="pdf", bbox_inches="tight", dpi=150)
+
+                macrophage_volume_percentage = df[df['short_name'] == file]["macrophage_volume_percentage"].any()
+
+                fig, ax = plt.subplots(figsize=(15, 10))
+                time = range(1, len(macrophage_volume_percentage) + 1)
+                ax2 = ax.twinx()
+                ax2.plot(time, macrophage_volume_percentage, marker='x', color="red", linestyle="dashed", linewidth=2,
+                         markersize=10)
+                ax2.set_ylabel("macrophage volume percentage")
+                ax2.set_xlabel("time frame")
+                # ax2.set_ylim(0, 0.08)
+                ax.bar(statistics_df["frame"], statistics_df["macrophage_number"], color="black")
+                ax.set_ylabel("macrophage number")
+
+                ax.set_title(file)
+                fig.savefig(path + parameters['segmentation_method'] + '_macrophage-number-to-volume_percentage-comparison.png',
+                            format="png", bbox_inches="tight", dpi=150)
+                fig.savefig(path + parameters['segmentation_method'] + '_macrophage-number-to-volume_percentage-comparison.pdf',
+                            format="pdf", bbox_inches="tight", dpi=150)
+
+            else:
+                print("No mfacrophage volumes exist for " + file)
+                plt.figure()
+                ax = plt.gca()
+                ax.bar(statistics_df["frame"], statistics_df["macrophage_number"], color="black")
+                ax.set_ylabel("macrophage number")
+
+                plt.savefig(path + parameters['segmentation_method'] + '_macrophage-number.png', format="png", bbox_inches="tight", dpi=150)
+                plt.savefig(path + parameters['segmentation_method'] + '_macrophage-number.pdf', format="pdf", bbox_inches="tight", dpi=150)
+                plt.close()
