@@ -415,10 +415,10 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                         else:
                             fig, ax = plt.subplots(1,2, figsize=(30,15))
 
-                        n_bins = np.max(movie_macrophages[tp].flatten())
+                        n_bins = np.max(movie_macrophages[tp].flatten()).astype(np.int64)
                         sns.histplot(movie_macrophages[tp].flatten(), bins = n_bins + 1,ax = ax[0])
                         ax[0].set_xlim(0, n_bins + 1)
-                        n_bins = np.max(macrophages_blurred.flatten())
+                        n_bins = np.max(macrophages_blurred.flatten()).astype(np.int64)
                         sns.histplot(macrophages_blurred.flatten(), bins = n_bins + 1,ax = ax[1])
                         ax[1].set_xlim(0, n_bins + 1)
                         ax[0].set_ylim(0, len(movie_macrophages[tp][movie_macrophages[tp] > 0].flatten()))
