@@ -31,14 +31,18 @@ data_path = parameters["data_folder"]
 folder_2d_data = "/03_Preprocessed_Data/01_2D/"
 use_gpu = parameters["use_gpu"]
 output_folder = data_path + "/cellpose_segmentation/"
-
+experiments = "annotated"
 
 for index, row in key_file.iterrows():
 
-    
-    file_path = data_path + folder_2d_data + str(row["short_name"]) + ".tif"
+    short_name = str(row["short_name"]) 
+    file_path = data_path + folder_2d_data + short_name + ".tif"
     
     if not os.path.exists(file_path):
+        continue
+
+    if (experiments == "annotated") and (not row["macrophages_annotated"]):
+        print("No annotation for %s" % short_name)
         continue
 
     print("open image file %s" % file_path)
@@ -61,47 +65,19 @@ for index, row in key_file.iterrows():
     fig, ax = plt.subplots(figsize=(15,15))
     ax.imshow(macrophage_img, cm.binary)
     ax.imshow(masks, cm.Set3, alpha = 0.5)
-    plt.savefig(output_folder + str(row["short_name"]) + "-%s.png" % time)
+
+    annotations_file = parameters["data_folder"] + "04_Processed_Data/01_Annotated_Macrophages/" + short_name + '.csv'
+    if os.path.exists(annotations_file):
+        annotated_positions = pd.read_csv(annotations_file, sep = ";")
+        print("annotated postions file exists ...")
+        print(annotated_positions.head())
+        annotated_df = annotated_positions[annotated_positions["time_point"] == time]
+        ax.plot(annotated_df['X'], annotated_df['Y'], 'rx', markersize = 15)
     
-        
+    plt.savefig(output_folder + short_name + "-%s.png" % time)
     
-# choice for greyscale
-#channels = [0,0]
-
-#masks, flows, styles, diams = model.eval(img, diameter=40, channels=channels)
-
-#io.masks_flows_to_seg(img , masks, flows, diams, output_filepath , channels)
-
-
-
-#filename = parameters['image_path']
-### remove later
-#data_path = parameters["data_folder"]
-
-#filename = data_path + "Series-1-z-stack-macrophages.tif"
-
-
-#img = skimage.io.imread(filename)
-#output_path = parameters['output_folder']
-#output_filename = parameters["output_filename"]
-#output_filepath = output_path + output_filename
-
-# extract channels
-
-#print(img.shape)
-
-##img = img.reshape((img.shape[1],img.shape[2],img.shape[0]))
-
-##print(img.shape)
-
-#use_gpu = parameters["use_gpu"]
-#model = models.Cellpose(gpu=use_gpu, model_type='cyto')
-
-# choice for greyscale
-#channels = [0,0]
-
-#masks, flows, styles, diams = model.eval(img, diameter=40, channels=channels)
-
+           
+    
 #io.masks_flows_to_seg(img , masks, flows, diams, output_filepath , channels)
 
 # load result
