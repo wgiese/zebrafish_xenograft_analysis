@@ -1,22 +1,20 @@
 
 
 data_folder: "/folder/to/data/"
-output_folder: "/folder/to/output/"
 key_file_path: "/00_Extra/Details_imaging_data_3D.xls"
 image_file_path: "/03_Preprocessed_Data/02_3D/"
-#image_file_path: "/04_Processed_Data/05_BGsubstracted/02_3D/" # for background substracted images
+output_folder: "/folder/to/output/"
 
-
-
-dimension: "2D"   # "2D" or "3D" 
 channel_tumor : 0
 channel_macrophages: 1
 channel_vessels: 2
 
-# not clear if there is an overlay or if this is needed TODO: check
-substract_tumor_from_macrophages: False
 
-# Filters 
+# cellpose segmentation
+use_gpu: False
+
+
+# Filters for tumor and vascular segmentation
 
 ## rolling ball background substraction
 
@@ -42,12 +40,5 @@ segmentation_method: "common" # or "Watershed"
 macrophages_small_objects: 350   # physical size of "debry" in microns^3 that will be taken out of macrophage mask
 export_masks : npy # or vtk or none
 
-# otsu_thresholding: False  # Boolean if Otsu thresholding should be performed #TODO remove
-# segmentation_method: "ilastik"  # possibilities are "ilastik" or "Thresholding" #TODO remove
-
-
-# cellpose segmentation
-use_gpu: False
-output_filename: "image_001"
 
 

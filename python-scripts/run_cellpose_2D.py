@@ -31,8 +31,8 @@ data_path = parameters["data_folder"]
 folder_2d_data = "/03_Preprocessed_Data/01_2D/"
 use_gpu = parameters["use_gpu"]
 output_folder = data_path + "/cellpose_segmentation/"
-#experiments = "annotated"
-experiments = "all"
+experiments = "annotated"
+#experiments = "all"
 
 for index, row in key_file.iterrows():
 
@@ -51,7 +51,6 @@ for index, row in key_file.iterrows():
     img = skimage.io.imread(file_path)
     
     print(img.shape)
- 
 
     coordinates_2D = pd.DataFrame()
     index = 0  
@@ -81,12 +80,25 @@ for index, row in key_file.iterrows():
         else:
             print("Annotation can not be loaded, file does not exist.")
         
-        plt.savefig(output_folder + short_name + "-%s.png" % time)
+        plt.savefig(output_folder + short_name + "-%s-cellpose.png" % time)
 
-
+       
+        if os.path.exists(annotations_file):
+            fig, ax = plt.subplots(figsize=(15,15))
+            ax.imshow(macrophage_img, cm.binary)
+            plt.savefig(output_folder + short_name + "-%s-annotations.png" % time)
+            annotated_positions = pd.read_csv(annotations_file, sep = ";")
+            print("annotated postions file exists ...")
+            print(annotated_positions.head())
+            annotated_df = annotated_positions[annotated_positions["time_point"] == time]
+            ax.plot(annotated_df['X'], annotated_df['Y'], 'rx', markersize = 15)
+            plt.savefig(output_folder + short_name + "-%s-annotations.png" % time)
+        else:
+            print("Annotation can not be loaded, file does not exist.")
+        
 
         for label in range(1,np.max(masks)-1):
-            single_cell_mask = np.where(masks ==label, 1, 0)
+            single_cell_mask = np.where(masks == label, 1, 0)
             regions = skimage.measure.regionprops(single_cell_mask, intensity_image = macrophage_img)
             
             for props in regions:
@@ -112,16 +124,4 @@ for index, row in key_file.iterrows():
             index +=1
 
         coordinates_2D.to_csv(output_folder + short_name + ".csv", sep=";")
-
-        
-#io.masks_flows_to_seg(img , masks, flows, diams, output_filepath , channels)
-
-# load result
-#cellpose_seg = np.load(output_filepath + "_seg.npy", allow_pickle=True)
-
-#mask = cellpose_seg.item()['masks']
-#for key in cellpose_seg.item():
-#    print(key)
-#
-#print(mask.shape)
 
