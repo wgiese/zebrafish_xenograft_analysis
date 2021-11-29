@@ -472,7 +472,8 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                         
                         legend = 0
 
-                        annotated_positions_file = parameters["data_folder"] + "04_Processed_Data/01_Annotated_Macrophages/" + filename + '.csv'
+                        annotated_positions_file = parameters["data_folder"] + "04_Processed_Data/01_Annotated_Macrophages/" + filename + '_new.csv'
+                        annotated_positions_file_old = parameters["data_folder"] + "04_Processed_Data/01_Annotated_Macrophages/" + filename + '.csv'
                         if os.path.exists(annotated_positions_file):
                             annotated_positions = pd.read_csv(annotated_positions_file, sep = ";")
                             print("annotated postions file exists ...")
@@ -483,6 +484,18 @@ def get_macrophage_properties(parameters, key_file, experiment = "all", vtk_out 
                                 ax[2].plot(plot_annotated_df['X'], plot_annotated_df['Y'], 'go', markersize = 15, label='macrophages by annotation')
                                 legend = 1
                             ax[2].plot(plot_annotated_df['X'], plot_annotated_df['Y'], 'go', markersize = 15)
+                        elif os.path.exists(annotated_positions_file_old):
+                            annotated_positions = pd.read_csv(annotated_positions_file_old, sep = ";")
+                            print("annotated postions file exists ...")
+                            print(annotated_positions.head())
+                            plot_annotated_df = annotated_positions[annotated_positions["time_point"] == tp]
+                            ax[3].plot(plot_annotated_df['X'], plot_annotated_df['Y'], 'go', markersize = 15)
+                            if legend == 0:
+                                ax[2].plot(plot_annotated_df['X'], plot_annotated_df['Y'], 'go', markersize = 15, label='macrophages by annotation')
+                                legend = 1
+                            ax[2].plot(plot_annotated_df['X'], plot_annotated_df['Y'], 'go', markersize = 15)
+
+        
 
                         else: 
                             print("annotated postions file does not exists ...")
