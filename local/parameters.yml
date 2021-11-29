@@ -1,0 +1,27 @@
+data_folder: "/home/fjodor/Data/zebrafish_xenograft/data_structured/"
+output_folder: "/home/fjodor/Data/zebrafish_xenograft/data_structured/thresholding_sauvola/"
+key_file_name: "Details_imaging_data_3D.xls"
+
+
+use_gpu: True:
+
+
+
+channel_tumor : 0
+channel_macrophages: 1
+channel_vessels: 2
+
+thresholding_method: "sauvola"  # options are "isodata", "li", "mean", "minimum", "niblack", "otsu", "sauvola", "triangle", "yen", "local" or an integer value
+otsu_thresholding: False  # Boolean if Otsu thresholding should be performed
+
+sigma: 3  # sigma for Gaussian filtering before Otsu thresholding
+
+segmentation_method: "ilastik"  # possibilities are "ilastik", "Thresholding" or "Watershed"
+
+macrophages_small_objects: 2500   # size of "debry" that will be taken out of macrophage mask
+
+export_masks : vtk # or vtk or none
+
+
+# cellpose segmentation
+
