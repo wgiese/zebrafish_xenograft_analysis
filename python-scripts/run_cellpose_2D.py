@@ -36,6 +36,10 @@ experiments = "annotated"
 
 for index, row in key_file.iterrows():
 
+    print(row['short_name'])
+    if index < 31:
+        continue
+
     short_name = str(row["short_name"]) 
     file_path = data_path + folder_2d_data + short_name + ".tif"
     
@@ -61,8 +65,15 @@ for index, row in key_file.iterrows():
         macrophage_img = img[time,:,:,parameters["channel_macrophages"]]
     
         channels = [0,0]
-        model = models.Cellpose(gpu=use_gpu, model_type='cyto')
-        masks, flows, styles, diams = model.eval(macrophage_img, diameter=25, channels=channels)
+
+        if parameters["cp_model_path"] == "None":
+            model = models.Cellpose(gpu=use_gpu, model_type='cyto')
+        else:
+            model = models.CellposeModel(gpu=use_gpu, pretrained_model = parameters["cp_model_path"]) 
+        #masks, flows, styles, diams = model.eval(macrophage_img, diameter=25, channels=channels)
+        masks, flows, styles = model.eval(macrophage_img, diameter=None, channels=channels)
+
+
         masks = skimage.segmentation.clear_border(masks)
 
 

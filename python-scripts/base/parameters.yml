@@ -12,7 +12,7 @@ channel_vessels: 2
 
 # cellpose segmentation
 use_gpu: False
-
+cp_model_path: "None"
 
 # Filters for tumor and vascular segmentation
 
@@ -39,6 +39,7 @@ window_size_thresholding: 31 # only applies for local thresholding methods
 segmentation_method: "common" # or "Watershed"
 macrophages_small_objects: 350   # physical size of "debry" in microns^3 that will be taken out of macrophage mask
 export_masks : npy # or vtk or none
+
 
 
 
