@@ -37,7 +37,7 @@ experiments = "annotated"
 for index, row in key_file.iterrows():
 
     print(row['short_name'])
-    if index < 31:
+    if index < 19:
         continue
 
     short_name = str(row["short_name"]) 
@@ -70,9 +70,14 @@ for index, row in key_file.iterrows():
             model = models.Cellpose(gpu=use_gpu, model_type='cyto')
         else:
             model = models.CellposeModel(gpu=use_gpu, pretrained_model = parameters["cp_model_path"]) 
+        
+        
         #masks, flows, styles, diams = model.eval(macrophage_img, diameter=25, channels=channels)
-        masks, flows, styles = model.eval(macrophage_img, diameter=None, channels=channels)
-
+        
+        if parameters["diameter"] == "None":
+            masks, flows, styles = model.eval(macrophage_img, diameter=None, channels=channels)
+        else:
+            masks, flows, styles = model.eval(macrophage_img, diameter=parameters["diameter"], channels=channels)
 
         masks = skimage.segmentation.clear_border(masks)
 
