@@ -15,11 +15,12 @@ import math
 from scipy.ndimage import gaussian_filter
 import sys
 from cellpose import models, io, plot
+sys.path.insert(0,"../")
 import functions_common
 
 ### read parameters
 
-parameters = functions_common.read_parameters()
+parameters = functions_common.read_parameters(base_folder = "../base/", local_folder = "../local/")
 print("#"*5,"parameters","#"*5)
 print(parameters)
 key_file = functions_common.read_key_file(parameters)
