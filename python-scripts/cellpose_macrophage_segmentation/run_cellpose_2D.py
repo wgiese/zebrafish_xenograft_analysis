@@ -13,6 +13,7 @@ from skimage.filters import threshold_otsu
 from skimage.measure import label, regionprops, regionprops_table
 import math
 from scipy.ndimage import gaussian_filter
+import scipy.ndimage as ndi
 import sys
 from cellpose import models, io, plot
 sys.path.insert(0,"../")
@@ -34,12 +35,17 @@ use_gpu = parameters["use_gpu"]
 output_folder = data_path + "/cellpose_segmentation/"
 experiments = "annotated"
 #experiments = "all"
+injection_time_dpi = 1
 
 for index, row in key_file.iterrows():
 
     print(row['short_name'])
-    if index < 19:
+    
+    if row["dpi"] != injection_time_dpi:
         continue
+  	
+    #if index < 19:
+    #    continue
 
     short_name = str(row["short_name"]) 
     file_path = data_path + folder_2d_data + short_name + ".tif"
@@ -80,13 +86,26 @@ for index, row in key_file.iterrows():
         else:
             masks, flows, styles = model.eval(macrophage_img, diameter=parameters["diameter"], channels=channels)
 
-        masks = skimage.segmentation.clear_border(masks)
+        
+        #print(styles)
 
+        masks = skimage.segmentation.clear_border(masks)
+        outline_list= np.array(utils.outlines_list(masks))
+        #print(outline_list)
+        outlines = np.zeros((macrophage_img.shape[0],macrophage_img.shape[1]))
+        for mask_id, outline_coords in enumerate(outline_list):
+            outlines[tuple(outline_coords.T)] = mask_id + 1
+
+        width = 2
+        outlines_d = ndi.morphology.binary_dilation(outlines.astype(bool), iterations = width)
+        outlines_ = np.where(outlines_d == True, 30, 0).T
 
         fig, ax = plt.subplots(figsize=(15,15))
         ax.imshow(macrophage_img, cm.binary)
-        ax.imshow(masks, cm.Set3, alpha = 0.5)
-
+        ax.imshow(np.ma.masked_where(masks == 0, masks), cm.Set3, alpha = 0.5)
+        ax.imshow(np.ma.masked_where(outlines_ == 0, outlines_),  plt.cm.Reds, vmin=0, vmax=100, alpha = 0.5)
+        
+       
         annotations_file = parameters["data_folder"] + "04_Processed_Data/01_Annotated_Macrophages/" + short_name + '.csv'
         if os.path.exists(annotations_file):
             annotated_positions = pd.read_csv(annotations_file, sep = ";")
@@ -113,9 +132,55 @@ for index, row in key_file.iterrows():
         else:
             print("Annotation can not be loaded, file does not exist.")
         
+        fig, ax = plt.subplots(figsize=(15,15))
+        ax.imshow(macrophage_img, cm.binary)
+        ax.imshow(np.ma.masked_where(masks == 0, masks), cm.Set3, alpha = 0.5)
+        ax.imshow(np.ma.masked_where(outlines_ == 0, outlines_),  plt.cm.Reds, vmin=0, vmax=100, alpha = 0.5)
+        
+        for mask_id in np.unique(masks):
+    
+            if mask_id == 0:
+                continue
+                
+            #print(mask_id)
+            single_cell_mask = np.where(masks ==mask_id, 1, 0)
+            regions = skimage.measure.regionprops(single_cell_mask)
+            
+            
+            for props in regions:
+                x_cell, y_cell = props.centroid
+                # note, the values of orientation from props are in [-pi/2,pi/2] with zero along the y-axis
+                orientation = np.pi/2.0 - props.orientation
+                minor_axis_length = props.minor_axis_length
+                major_axis_length = props.major_axis_length
+                eccentricity = props.eccentricity
+                area = props.area
+                perimeter = props.perimeter
+                
+            
+            
+            
+            x0 = x_cell
+            y0 = y_cell
 
-        for label in range(1,np.max(masks)-1):
-            single_cell_mask = np.where(masks == label, 1, 0)
+            x1_major = x0 + math.sin(orientation) * 0.5 * major_axis_length
+            y1_major = y0 + math.cos(orientation) * 0.5 * major_axis_length
+            x2_major = x0 - math.sin(orientation) * 0.5 * major_axis_length
+            y2_major = y0 - math.cos(orientation) * 0.5 * major_axis_length
+
+            x1_minor = x0 + math.cos(orientation) * 0.5 * minor_axis_length
+            y1_minor = y0 - math.sin(orientation) * 0.5 * minor_axis_length
+            x2_minor = x0 - math.cos(orientation) * 0.5 * minor_axis_length
+            y2_minor = y0 + math.sin(orientation) * 0.5 * minor_axis_length
+
+            ax.plot((y1_major, y2_major), (x1_major, x2_major), '--k', linewidth=2.5)
+            ax.plot((y1_minor, y2_minor), (x1_minor, x2_minor), '--k', linewidth=2.5)
+            
+            ax.text( y_cell,x_cell, str(mask_id), color = "red", fontsize=20)
+
+
+        #for label in range(1,np.max(masks)-1):
+            #single_cell_mask = np.where(masks == label, 1, 0)
             regions = skimage.measure.regionprops(single_cell_mask, intensity_image = macrophage_img)
             
             for props in regions:
@@ -130,15 +195,20 @@ for index, row in key_file.iterrows():
                 perimeter = props.perimeter  
             
             coordinates_2D.at[index,"time_point"] = time
-            coordinates_2D.at[index,"number"] = label
+            coordinates_2D.at[index,"number"] = mask_id
             coordinates_2D.at[index,"Area"] = area
             coordinates_2D.at[index,"Mean"] = mean_intensity
             coordinates_2D.at[index,"Min"] = min_intensity
             coordinates_2D.at[index,"Max"] = max_intensity
             coordinates_2D.at[index,"X"] = x_cell
             coordinates_2D.at[index,"Y"] = y_cell
+            coordinates_2D.at[index,"minor_axis_length"] = minor_axis_length
+            coordinates_2D.at[index,"major_axis_length"] = major_axis_length
+            coordinates_2D.at[index,"perimeter"] = perimeter
+            coordinates_2D.at[index,"eccentricity"] = eccentricity
 
             index +=1
 
+        plt.savefig(output_folder + short_name + "-%s-cell_properties.png" % time)
         coordinates_2D.to_csv(output_folder + short_name + ".csv", sep=";")
 
