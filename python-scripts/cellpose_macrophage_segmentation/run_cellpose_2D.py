@@ -35,7 +35,7 @@ use_gpu = parameters["use_gpu"]
 output_folder = parameters["cp_output_path"] #data_path + "/cellpose_segmentation/"
 experiments = "annotated"
 #experiments = "all"
-injection_time_dpi = 1
+injection_time_dpi = parameters["dpi"]
 
 for index, row in key_file.iterrows():
 
