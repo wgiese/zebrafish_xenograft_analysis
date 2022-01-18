@@ -32,7 +32,7 @@ print(key_file.head())
 data_path = parameters["data_folder"]
 folder_2d_data = "/03_Preprocessed_Data/01_2D/"
 use_gpu = parameters["use_gpu"]
-output_folder = data_path + "/cellpose_segmentation/"
+output_folder = parameters["cp_output_path"] #data_path + "/cellpose_segmentation/"
 experiments = "annotated"
 #experiments = "all"
 injection_time_dpi = 1
