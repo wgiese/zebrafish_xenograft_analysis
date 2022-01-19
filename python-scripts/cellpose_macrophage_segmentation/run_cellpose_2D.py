@@ -37,11 +37,18 @@ experiments = "annotated"
 #experiments = "all"
 injection_time_dpi = parameters["dpi"]
 
+
+if experiments == "annotated":
+    print("only use annotated (2D coordinates) macrophages")
+    key_file = key_file[key_file["macrophages_annotated"]==1.0]
+    print(key_file)
+
 for index, row in key_file.iterrows():
 
     print(row['short_name'])
     
     if row["dpi"] != injection_time_dpi:
+        print("Skip, injection time not as specified in the parameter file")
         continue
   	
     #if index < 19:
@@ -51,11 +58,13 @@ for index, row in key_file.iterrows():
     file_path = data_path + folder_2d_data + short_name + ".tif"
     
     if not os.path.exists(file_path):
+        print(file_path)
+        print("file path does not exist!")
         continue
 
-    if (experiments == "annotated") and (not row["macrophages_annotated"]):
-        print("No annotation available for %s" % short_name)
-        continue
+    #if (experiments == "annotated") and (row["macrophages_annotated"] == 0):
+    #    print("No annotation available for %s" % short_name)
+    #    continue
 
     print("open image file %s" % file_path)
         
