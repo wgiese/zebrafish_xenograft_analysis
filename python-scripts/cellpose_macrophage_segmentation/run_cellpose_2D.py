@@ -33,12 +33,12 @@ data_path = parameters["data_folder"]
 folder_2d_data = "/03_Preprocessed_Data/01_2D/"
 use_gpu = parameters["use_gpu"]
 output_folder = parameters["cp_output_path"] #data_path + "/cellpose_segmentation/"
-experiments = "annotated"
-#experiments = "all"
+#experiments = "annotated"
+experiments = "all"
 injection_time_dpi = parameters["dpi"]
+filter_experiments = parameters["filter_experiments"]
 
-
-if experiments == "annotated":
+if filter_experiments == "annotated":
     print("only use annotated (2D coordinates) macrophages")
     key_file = key_file[key_file["macrophages_annotated"]==1.0]
     print(key_file)
@@ -203,6 +203,7 @@ for index, row in key_file.iterrows():
                 area = props.area
                 perimeter = props.perimeter  
             
+            coordinates_2D.at[index,"short_name"] = short_name
             coordinates_2D.at[index,"time_point"] = time
             coordinates_2D.at[index,"number"] = mask_id
             coordinates_2D.at[index,"Area"] = area
@@ -211,13 +212,16 @@ for index, row in key_file.iterrows():
             coordinates_2D.at[index,"Max"] = max_intensity
             coordinates_2D.at[index,"X"] = x_cell
             coordinates_2D.at[index,"Y"] = y_cell
+            coordinates_2D.at[index,"dt_min"] = row["dt_min"]
+            coordinates_2D.at[index,"time_in_min"] = row["dt_min"]*time
             coordinates_2D.at[index,"minor_axis_length"] = minor_axis_length
             coordinates_2D.at[index,"major_axis_length"] = major_axis_length
             coordinates_2D.at[index,"perimeter"] = perimeter
             coordinates_2D.at[index,"eccentricity"] = eccentricity
-
+            coordinates_2D.at[index,"cancer_cells"] = row["cancer_cells"]
+            
             index +=1
 
         plt.savefig(output_folder + short_name + "-%s-cell_properties.png" % time)
-        coordinates_2D.to_csv(output_folder + short_name + ".csv", sep=";")
+        coordinates_2D.to_csv(output_folder + short_name + ".csv", sep=";", index = False)
 

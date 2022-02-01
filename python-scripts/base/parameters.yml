@@ -40,6 +40,7 @@ cp_model_path: "None"
 cp_output_path: "/folder/to/cp_output/"
 diameter : 30
 dpi: 1
+filter_experiments: "none" # options: "none" or "annotated"
 export_masks : npy # or vtk or none
 
 
