@@ -31,6 +31,7 @@ window_size_thresholding: 31 # only applies for local thresholding methods
 
 
 ## segmentation parameters
+skip_experiments: []  
 segmentation_method: "common" # or "Watershed"
 macrophages_small_objects: 350   # physical size of "debry" in microns^3 that will be taken out of macrophage mask
 

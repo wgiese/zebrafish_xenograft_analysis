@@ -37,29 +37,48 @@ output_folder = parameters["cp_output_path"] #data_path + "/cellpose_segmentatio
 experiments = "all"
 injection_time_dpi = parameters["dpi"]
 filter_experiments = parameters["filter_experiments"]
+skip_experiments = parameters["skip_experiments"]
+
+key_file = key_file[key_file["dpi"]==injection_time_dpi]
+key_file = key_file[~key_file["short_name"].isin(skip_experiments)]
 
 if filter_experiments == "annotated":
     print("only use annotated (2D coordinates) macrophages")
     key_file = key_file[key_file["macrophages_annotated"]==1.0]
     print(key_file)
 
+
+analysis_summary = pd.DataFrame()
+index_summary = 0
+
 for index, row in key_file.iterrows():
 
     print(row['short_name'])
     
-    if row["dpi"] != injection_time_dpi:
-        print("Skip, injection time not as specified in the parameter file")
-        continue
-  	
-    #if index < 19:
+    #if row["dpi"] != injection_time_dpi:
+    #    print("Skip, injection time not as specified in the parameter file")
+    #    continue
+	
+    #for key in key_file.columns:
+    #    analysis_summary.at[index_summary, key] = row[key]
+    
+    analysis_summary.at[index_summary, "short_name"] = row["short_name"]
+    analysis_summary.at[index_summary, "dpi"] = row["dpi"]
+    analysis_summary.at[index_summary, "properties_saved"] = "no"
+	
+    analysis_summary.to_csv(output_folder + "analysis_summary.csv", index = False)
+    #if index < 11:
     #    continue
 
     short_name = str(row["short_name"]) 
     file_path = data_path + folder_2d_data + short_name + ".tif"
-    
+    fish_id = short_name.split("_")[0] + "_" + short_name.split("_")[1] + "_" + short_name.split("_")[3]
+
+
     if not os.path.exists(file_path):
         print(file_path)
         print("file path does not exist!")
+        index_summary += 1
         continue
 
     #if (experiments == "annotated") and (row["macrophages_annotated"] == 0):
@@ -93,7 +112,7 @@ for index, row in key_file.iterrows():
         if parameters["diameter"] == "None":
             masks, flows, styles = model.eval(macrophage_img, diameter=None, channels=channels)
         else:
-            masks, flows, styles = model.eval(macrophage_img, diameter=parameters["diameter"], channels=channels)
+            masks, flows, styles = model.eval(macrophage_img, diameter=parameters["diameter"], channels=channels, flow_threshold = 0.6)
 
         
         #print(styles)
@@ -202,8 +221,9 @@ for index, row in key_file.iterrows():
                 min_intensity = props.min_intensity
                 area = props.area
                 perimeter = props.perimeter  
-            
+
             coordinates_2D.at[index,"short_name"] = short_name
+            coordinates_2D.at[index,"fish_id"] = fish_id
             coordinates_2D.at[index,"time_point"] = time
             coordinates_2D.at[index,"number"] = mask_id
             coordinates_2D.at[index,"Area"] = area
@@ -216,6 +236,7 @@ for index, row in key_file.iterrows():
             coordinates_2D.at[index,"time_in_min"] = row["dt_min"]*time
             coordinates_2D.at[index,"minor_axis_length"] = minor_axis_length
             coordinates_2D.at[index,"major_axis_length"] = major_axis_length
+            coordinates_2D.at[index,"major_minor_ratio"] = major_axis_length/minor_axis_length
             coordinates_2D.at[index,"perimeter"] = perimeter
             coordinates_2D.at[index,"eccentricity"] = eccentricity
             coordinates_2D.at[index,"cancer_cells"] = row["cancer_cells"]
@@ -224,4 +245,9 @@ for index, row in key_file.iterrows():
 
         plt.savefig(output_folder + short_name + "-%s-cell_properties.png" % time)
         coordinates_2D.to_csv(output_folder + short_name + ".csv", sep=";", index = False)
+
+    analysis_summary.at[index_summary, "properties_saved"] = "yes"
+    analysis_summary.to_csv(output_folder + "analysis_summary.csv", index = False)
+    index_summary += 1
+    
 
