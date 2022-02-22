@@ -29,6 +29,8 @@ print("#"*5,"key_file","#"*5)
 print(key_file.head())
 
 
+### setup paths to data
+
 data_path = parameters["data_folder"]
 folder_2d_data = "/03_Preprocessed_Data/01_2D/"
 use_gpu = parameters["use_gpu"]
@@ -47,14 +49,33 @@ if filter_experiments == "annotated":
     key_file = key_file[key_file["macrophages_annotated"]==1.0]
     print(key_file)
 
-
-analysis_summary = pd.DataFrame()
+analysis_summary_path = output_folder + "analysis_summary.csv"
 index_summary = 0
+
+if parameters["resume"]:
+    analysis_summary = pd.read_csv(analysis_summary_path)
+    analysis_summary = analysis_summary[analysis_summary["properties_saved"]=="yes"]
+    index_summary = analysis_summary.shape[0]
+    set_types = {"short_name" : "object", "dpi" : "int8", 
+                "properties_saved" : "object", "cellpose_diameter": "float32",
+                "cellpose_model" : "object"}
+
+    analysis_summary = analysis_summary.astype(set_types)
+    print(analysis_summary.dtypes)
+else:
+    analysis_summary = pd.DataFrame()
+
 
 for index, row in key_file.iterrows():
 
     print(row['short_name'])
-    
+
+    if parameters["resume"]:
+        #print(list(analysis_summary["short_name"]))
+        if row["short_name"] in list(analysis_summary["short_name"]):
+            print("%s  already analysed -> skip")
+            continue
+
     #if row["dpi"] != injection_time_dpi:
     #    print("Skip, injection time not as specified in the parameter file")
     #    continue
@@ -65,6 +86,8 @@ for index, row in key_file.iterrows():
     analysis_summary.at[index_summary, "short_name"] = row["short_name"]
     analysis_summary.at[index_summary, "dpi"] = row["dpi"]
     analysis_summary.at[index_summary, "properties_saved"] = "no"
+    analysis_summary.at[index_summary, "cellpose_diameter"] = parameters["diameter"]
+    analysis_summary.at[index_summary, "cellpose_model"] = str(parameters["cp_model_path"])
 	
     analysis_summary.to_csv(output_folder + "analysis_summary.csv", index = False)
     #if index < 11:
