@@ -112,7 +112,7 @@ for index, row in key_file.iterrows():
         if parameters["diameter"] == "None":
             masks, flows, styles = model.eval(macrophage_img, diameter=None, channels=channels)
         else:
-            masks, flows, styles = model.eval(macrophage_img, diameter=parameters["diameter"], channels=channels, flow_threshold = 0.6)
+            masks, flows, styles = model.eval(macrophage_img, diameter=parameters["diameter"], channels=channels, flow_threshold = 0.4)
 
         
         #print(styles)
