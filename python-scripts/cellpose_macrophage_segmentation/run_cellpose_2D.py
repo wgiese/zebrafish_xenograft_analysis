@@ -126,32 +126,34 @@ for index, row in key_file.iterrows():
         else:
             model = models.CellposeModel(gpu=use_gpu, pretrained_model = parameters["cp_model_path"]) 
         
-        
-        #masks, flows, styles, diams = model.eval(macrophage_img, diameter=25, channels=channels)
-        
         if parameters["diameter"] == "None":
             masks, flows, styles = model.eval(macrophage_img, diameter=None, channels=channels)
         else:
             masks, flows, styles = model.eval(macrophage_img, diameter=parameters["diameter"], channels=channels, flow_threshold = 0.4)
 
-        
-        #print(styles)
 
         masks = skimage.segmentation.clear_border(masks)
-        outline_list= np.array(utils.outlines_list(masks))
-        #print(outline_list)
-        outlines = np.zeros((macrophage_img.shape[0],macrophage_img.shape[1]))
-        for mask_id, outline_coords in enumerate(outline_list):
-            outlines[tuple(outline_coords.T)] = mask_id + 1
+        number_labels = np.max(masks))
 
-        width = 2
-        outlines_d = ndi.morphology.binary_dilation(outlines.astype(bool), iterations = width)
-        outlines_ = np.where(outlines_d == True, 30, 0).T
+        print("Found %s macrophages" % number_labels)
 
+        
         fig, ax = plt.subplots(figsize=(15,15))
         ax.imshow(macrophage_img, cm.binary)
         ax.imshow(np.ma.masked_where(masks == 0, masks), cm.Set3, alpha = 0.5)
-        ax.imshow(np.ma.masked_where(outlines_ == 0, outlines_),  plt.cm.Reds, vmin=0, vmax=100, alpha = 0.5)
+        
+        if (number_labels > 1):
+        
+            outline_list= np.array(utils.outlines_list(masks))
+            outlines = np.zeros((macrophage_img.shape[0],macrophage_img.shape[1]))
+            for mask_id, outline_coords in enumerate(outline_list):
+                outlines[tuple(outline_coords.T)] = mask_id + 1
+
+            width = 2
+            outlines_d = ndi.morphology.binary_dilation(outlines.astype(bool), iterations = width)
+            outlines_ = np.where(outlines_d == True, 30, 0).T
+
+            ax.imshow(np.ma.masked_where(outlines_ == 0, outlines_),  plt.cm.Reds, vmin=0, vmax=100, alpha = 0.5)
         
        
         annotations_file = parameters["data_folder"] + "04_Processed_Data/01_Annotated_Macrophages/" + short_name + '.csv'
