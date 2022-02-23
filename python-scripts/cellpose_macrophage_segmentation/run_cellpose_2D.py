@@ -147,8 +147,11 @@ for index, row in key_file.iterrows():
             outline_list= np.array(utils.outlines_list(masks))
             outlines = np.zeros((macrophage_img.shape[0],macrophage_img.shape[1]))
             for mask_id, outline_coords in enumerate(outline_list):
-                print(outline_coords.T.shape)
-                print(outline_coords.T.dtype)
+                
+                if (outline_coords.T.shape[1] < 10):
+                    print(np.count_nonzero(masks == mask_id + 1))
+                    print(outline_coords.T.shape)
+                    print(outline_coords.T.dtype)
                 outlines[tuple(outline_coords.T)] = mask_id + 1
 
             width = 2
