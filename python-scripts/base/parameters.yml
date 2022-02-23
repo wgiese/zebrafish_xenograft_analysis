@@ -46,3 +46,11 @@ export_masks : npy # or vtk or none
 resume: False
 
 
+# time series analysis
+
+macrophage_input_path_1dpi : "/folder/to/cellpose/segmentations/"
+macrophage_input_path_5dpi : "/folder/to/cellpose/segmentations/"
+
+sample_full_hours : False
+filter_conditions : ["LBT003","BT333"]
+
