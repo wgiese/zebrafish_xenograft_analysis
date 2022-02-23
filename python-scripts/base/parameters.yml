@@ -45,6 +45,7 @@ filter_experiments: "none" # options: "none" or "annotated"
 export_masks : npy # or vtk or none
 resume: False
 
+plot_properties : False
 
 # time series analysis
 
