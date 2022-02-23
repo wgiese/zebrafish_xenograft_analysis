@@ -1,7 +1,7 @@
 import pandas as pd
-import yaml
+# import yaml
 import numpy as np
-import scipy.ndimage
+#import scipy.ndimage
 import time, os, sys
 import skimage.io
 import matplotlib.pyplot as plt
@@ -12,7 +12,7 @@ from matplotlib import cm
 from skimage.filters import threshold_otsu
 from skimage.measure import label, regionprops, regionprops_table
 import math
-from scipy.ndimage import gaussian_filter
+#from scipy.ndimage import gaussian_filter
 import scipy.ndimage as ndi
 import sys
 from cellpose import models, io, plot
@@ -29,18 +29,21 @@ key_file = functions_common.read_key_file(parameters)
 print("#"*5,"key_file","#"*5)
 print(key_file.head())
 
+#experiments = "annotated"
+experiments = "all"
+injection_time_dpi = parameters["dpi"]
+filter_experiments = parameters["filter_experiments"]
+skip_experiments = parameters["skip_experiments"]
+
 
 ### setup paths to data
 
 data_path = parameters["data_folder"]
 folder_2d_data = "/03_Preprocessed_Data/01_2D/"
 use_gpu = parameters["use_gpu"]
-output_folder = parameters["cp_output_path"] #data_path + "/cellpose_segmentation/"
-#experiments = "annotated"
-experiments = "all"
-injection_time_dpi = parameters["dpi"]
-filter_experiments = parameters["filter_experiments"]
-skip_experiments = parameters["skip_experiments"]
+output_folder = parameters["cp_output_path"]
+
+# filter key file
 
 key_file = key_file[key_file["dpi"]==injection_time_dpi]
 key_file = key_file[~key_file["short_name"].isin(skip_experiments)]
@@ -49,6 +52,8 @@ if filter_experiments == "annotated":
     print("only use annotated (2D coordinates) macrophages")
     key_file = key_file[key_file["macrophages_annotated"]==1.0]
     print(key_file)
+
+# create summary file that contains meta information and the possibility to resume
 
 analysis_summary_path = output_folder + "analysis_summary.csv"
 index_summary = 0
@@ -60,32 +65,24 @@ if parameters["resume"]:
     set_types = {"short_name" : "object", "dpi" : "int8", 
                 "properties_saved" : "object", "cellpose_diameter": "float32",
                 "cellpose_model" : "object"}
-
     analysis_summary = analysis_summary.astype(set_types)
     print(analysis_summary.dtypes)
 else:
     analysis_summary = pd.DataFrame()
 
 
+# iterate over key file, every rowlinks to one image time series and contains corresponding meta information
+
 for index, row in key_file.iterrows():
 
-    print(row['short_name'])
+    print("short name (of experiment):", row['short_name'])
 
     if parameters["resume"]:
-        #print(list(analysis_summary["short_name"]))
         if row["short_name"] in list(analysis_summary["short_name"]):
             print("%s  already analysed -> skip")
             continue
-
-    #if row["dpi"] != injection_time_dpi:
-    #    print("Skip, injection time not as specified in the parameter file")
-    #    continue
-	
-    #for key in key_file.columns:
-    #    analysis_summary.at[index_summary, key] = row[key]
     
     now = datetime.datetime.now()
-
     date_time = now.strftime("%Y-%m-%d %H:%M:%S")
     
     analysis_summary.at[index_summary, "short_name"] = row["short_name"]
@@ -96,8 +93,6 @@ for index, row in key_file.iterrows():
     analysis_summary.at[index_summary, "date_time"] = date_time
 	
     analysis_summary.to_csv(output_folder + "analysis_summary.csv", index = False)
-    #if index < 11:
-    #    continue
 
     short_name = str(row["short_name"]) 
     file_path = data_path + folder_2d_data + short_name + ".tif"
@@ -110,11 +105,7 @@ for index, row in key_file.iterrows():
         index_summary += 1
         continue
 
-    #if (experiments == "annotated") and (row["macrophages_annotated"] == 0):
-    #    print("No annotation available for %s" % short_name)
-    #    continue
-
-    print("open image file %s" % file_path)
+    print("open image file:", file_path)
         
     img = skimage.io.imread(file_path)
     
