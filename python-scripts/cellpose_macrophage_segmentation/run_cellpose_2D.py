@@ -147,6 +147,8 @@ for index, row in key_file.iterrows():
             outline_list= np.array(utils.outlines_list(masks))
             outlines = np.zeros((macrophage_img.shape[0],macrophage_img.shape[1]))
             for mask_id, outline_coords in enumerate(outline_list):
+                print(outline_coords.T.shape)
+                print(outline_coords.T.dtype)
                 outlines[tuple(outline_coords.T)] = mask_id + 1
 
             width = 2
@@ -183,10 +185,11 @@ for index, row in key_file.iterrows():
         else:
             print("Annotation can not be loaded, file does not exist.")
         
-        fig, ax = plt.subplots(figsize=(15,15))
-        ax.imshow(macrophage_img, cm.binary)
-        ax.imshow(np.ma.masked_where(masks == 0, masks), cm.Set3, alpha = 0.5)
-        ax.imshow(np.ma.masked_where(outlines_ == 0, outlines_),  plt.cm.Reds, vmin=0, vmax=100, alpha = 0.5)
+        if parameters["plot_properties"]:
+            fig, ax = plt.subplots(figsize=(15,15))
+            ax.imshow(macrophage_img, cm.binary)
+            ax.imshow(np.ma.masked_where(masks == 0, masks), cm.Set3, alpha = 0.5)
+            ax.imshow(np.ma.masked_where(outlines_ == 0, outlines_),  plt.cm.Reds, vmin=0, vmax=100, alpha = 0.5)
         
         for mask_id in np.unique(masks):
     
@@ -198,36 +201,38 @@ for index, row in key_file.iterrows():
             regions = skimage.measure.regionprops(single_cell_mask)
             
             
-            for props in regions:
-                x_cell, y_cell = props.centroid
-                # note, the values of orientation from props are in [-pi/2,pi/2] with zero along the y-axis
-                orientation = np.pi/2.0 - props.orientation
-                minor_axis_length = props.minor_axis_length
-                major_axis_length = props.major_axis_length
-                eccentricity = props.eccentricity
-                area = props.area
-                perimeter = props.perimeter
+            if parameters["plot_properties"]:
+                
+                for props in regions:
+                    x_cell, y_cell = props.centroid
+                    # note, the values of orientation from props are in [-pi/2,pi/2] with zero along the y-axis
+                    orientation = np.pi/2.0 - props.orientation
+                    minor_axis_length = props.minor_axis_length
+                    major_axis_length = props.major_axis_length
+                    eccentricity = props.eccentricity
+                    area = props.area
+                    perimeter = props.perimeter
                 
             
             
             
-            x0 = x_cell
-            y0 = y_cell
+                x0 = x_cell
+                y0 = y_cell
 
-            x1_major = x0 + math.sin(orientation) * 0.5 * major_axis_length
-            y1_major = y0 + math.cos(orientation) * 0.5 * major_axis_length
-            x2_major = x0 - math.sin(orientation) * 0.5 * major_axis_length
-            y2_major = y0 - math.cos(orientation) * 0.5 * major_axis_length
+                x1_major = x0 + math.sin(orientation) * 0.5 * major_axis_length
+                y1_major = y0 + math.cos(orientation) * 0.5 * major_axis_length
+                x2_major = x0 - math.sin(orientation) * 0.5 * major_axis_length
+                y2_major = y0 - math.cos(orientation) * 0.5 * major_axis_length
 
-            x1_minor = x0 + math.cos(orientation) * 0.5 * minor_axis_length
-            y1_minor = y0 - math.sin(orientation) * 0.5 * minor_axis_length
-            x2_minor = x0 - math.cos(orientation) * 0.5 * minor_axis_length
-            y2_minor = y0 + math.sin(orientation) * 0.5 * minor_axis_length
+                x1_minor = x0 + math.cos(orientation) * 0.5 * minor_axis_length
+                y1_minor = y0 - math.sin(orientation) * 0.5 * minor_axis_length
+                x2_minor = x0 - math.cos(orientation) * 0.5 * minor_axis_length
+                y2_minor = y0 + math.sin(orientation) * 0.5 * minor_axis_length
 
-            ax.plot((y1_major, y2_major), (x1_major, x2_major), '--k', linewidth=2.5)
-            ax.plot((y1_minor, y2_minor), (x1_minor, x2_minor), '--k', linewidth=2.5)
+                ax.plot((y1_major, y2_major), (x1_major, x2_major), '--k', linewidth=2.5)
+                ax.plot((y1_minor, y2_minor), (x1_minor, x2_minor), '--k', linewidth=2.5)
             
-            ax.text( y_cell,x_cell, str(mask_id), color = "red", fontsize=20)
+                ax.text( y_cell,x_cell, str(mask_id), color = "red", fontsize=20)
 
 
         #for label in range(1,np.max(masks)-1):
@@ -236,9 +241,9 @@ for index, row in key_file.iterrows():
             
             for props in regions:
                 x_cell, y_cell = props.centroid
-                #minor_axis_length = props.minor_axis_length
-                #major_axis_length = props.major_axis_length
-                #eccentricity = props.eccentricity
+                minor_axis_length = props.minor_axis_length
+                major_axis_length = props.major_axis_length
+                eccentricity = props.eccentricity
                 mean_intensity = props.mean_intensity
                 max_intensity = props.max_intensity
                 min_intensity = props.min_intensity
@@ -266,7 +271,9 @@ for index, row in key_file.iterrows():
             
             index +=1
 
-        #plt.savefig(output_folder + short_name + "-%s-cell_properties.png" % time)
+        
+        if parameters["plot_properties"]:
+            plt.savefig(output_folder + short_name + "-%s-cell_properties.png" % time)
         coordinates_2D.to_csv(output_folder + short_name + ".csv", sep=";", index = False)
         plt.close()
 
