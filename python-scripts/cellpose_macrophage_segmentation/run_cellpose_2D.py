@@ -11,6 +11,7 @@ from cellpose import utils
 from matplotlib import cm
 from skimage.filters import threshold_otsu
 from skimage.measure import label, regionprops, regionprops_table
+from skimage import morphology
 import math
 #from scipy.ndimage import gaussian_filter
 import scipy.ndimage as ndi
@@ -133,6 +134,8 @@ for index, row in key_file.iterrows():
 
 
         masks = skimage.segmentation.clear_border(masks)
+        masks = morphology.remove_small_objects(masks, parameters["min_macrophage_area"], connectivity=2)
+
         number_labels = np.max(masks)
 
         print("Found %s macrophages" % number_labels)

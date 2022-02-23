@@ -41,10 +41,10 @@ cp_model_path: "None"
 cp_output_path: "/folder/to/cp_output/"
 diameter : 30
 dpi: 1
+min_macrophage_area: 10  # min size in pixel^2
 filter_experiments: "none" # options: "none" or "annotated"
 export_masks : npy # or vtk or none
 resume: False
-
 plot_properties : False
 
 # time series analysis
