@@ -185,7 +185,7 @@ for index, row in key_file.iterrows():
             print(annotated_positions.head())
             annotated_df = annotated_positions[annotated_positions["time_point"] == time]
             ax.plot(annotated_df['X'], annotated_df['Y'], 'rx', markersize = 15)
-            plt.savefig(output_folder + short_name + "-%s-annotations.png" % time)
+            #plt.savefig(output_folder + short_name + "-%s-annotations.png" % time)
             plt.close()
         else:
             print("Annotation can not be loaded, file does not exist.")
@@ -273,7 +273,7 @@ for index, row in key_file.iterrows():
             
             index +=1
 
-        plt.savefig(output_folder + short_name + "-%s-cell_properties.png" % time)
+        #plt.savefig(output_folder + short_name + "-%s-cell_properties.png" % time)
         coordinates_2D.to_csv(output_folder + short_name + ".csv", sep=";", index = False)
         plt.close()
 
