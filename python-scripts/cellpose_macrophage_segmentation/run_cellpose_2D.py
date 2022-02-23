@@ -133,7 +133,7 @@ for index, row in key_file.iterrows():
 
 
         masks = skimage.segmentation.clear_border(masks)
-        number_labels = np.max(masks))
+        number_labels = np.max(masks)
 
         print("Found %s macrophages" % number_labels)
 
