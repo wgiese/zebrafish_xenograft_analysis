@@ -18,6 +18,7 @@ import sys
 from cellpose import models, io, plot
 sys.path.insert(0,"../")
 import functions_common
+import datetime
 
 ### read parameters
 
@@ -83,11 +84,16 @@ for index, row in key_file.iterrows():
     #for key in key_file.columns:
     #    analysis_summary.at[index_summary, key] = row[key]
     
+    now = datetime.datetime.now()
+
+    date_time = now.strftime("%Y-%m-%d %H:%M:%S")
+    
     analysis_summary.at[index_summary, "short_name"] = row["short_name"]
     analysis_summary.at[index_summary, "dpi"] = row["dpi"]
     analysis_summary.at[index_summary, "properties_saved"] = "no"
     analysis_summary.at[index_summary, "cellpose_diameter"] = parameters["diameter"]
     analysis_summary.at[index_summary, "cellpose_model"] = str(parameters["cp_model_path"])
+    analysis_summary.at[index_summary, "date_time"] = date_time
 	
     analysis_summary.to_csv(output_folder + "analysis_summary.csv", index = False)
     #if index < 11:
@@ -168,7 +174,7 @@ for index, row in key_file.iterrows():
             print("Annotation can not be loaded, file does not exist.")
         
         plt.savefig(output_folder + short_name + "-%s-cellpose.png" % time)
-
+        plt.close()
        
         if os.path.exists(annotations_file):
             fig, ax = plt.subplots(figsize=(15,15))
@@ -180,6 +186,7 @@ for index, row in key_file.iterrows():
             annotated_df = annotated_positions[annotated_positions["time_point"] == time]
             ax.plot(annotated_df['X'], annotated_df['Y'], 'rx', markersize = 15)
             plt.savefig(output_folder + short_name + "-%s-annotations.png" % time)
+            plt.close()
         else:
             print("Annotation can not be loaded, file does not exist.")
         
@@ -268,6 +275,7 @@ for index, row in key_file.iterrows():
 
         plt.savefig(output_folder + short_name + "-%s-cell_properties.png" % time)
         coordinates_2D.to_csv(output_folder + short_name + ".csv", sep=";", index = False)
+        plt.close()
 
     analysis_summary.at[index_summary, "properties_saved"] = "yes"
     analysis_summary.to_csv(output_folder + "analysis_summary.csv", index = False)
