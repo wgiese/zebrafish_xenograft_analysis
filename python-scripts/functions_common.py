@@ -91,27 +91,27 @@ def thresholding_3D(parameters, image_blurred):
     # thresholding images
     thresh = 10
     if parameters["thresholding_method"] == "isodata":
-    	thresh = skifi.threshold_isodata(image_blurred)
+        thresh = skifi.threshold_isodata(image_blurred)
     if parameters["thresholding_method"] == "li":
-    	thresh = skifi.threshold_li(image_blurred)
+        thresh = skifi.threshold_li(image_blurred)
     if parameters["thresholding_method"] == "mean":
-    	thresh = skifi.threshold_mean(image_blurred)
+        thresh = skifi.threshold_mean(image_blurred)
     if parameters["thresholding_method"] == "minimum":
-    	thresh = skifi.threshold_minimum(image_blurred)
+        thresh = skifi.threshold_minimum(image_blurred)
     if parameters["thresholding_method"] == "niblack":
-    	thresh = skifi.threshold_niblack(image_blurred)
+        thresh = skifi.threshold_niblack(image_blurred)
     if parameters["thresholding_method"] == "otsu":
-    	thresh = skifi.threshold_otsu(image_blurred)
-    	print("Using thresholding method otsu with value %s" % thresh)
+        thresh = skifi.threshold_otsu(image_blurred)
+        print("Using thresholding method otsu with value %s" % thresh)
     if parameters["thresholding_method"] == "sauvola":
-    	thresh = skifi.threshold_sauvola(image_blurred, window_size = parameters["window_size_thresholding"])
-    	print("Using thresholding method sauvola")
+        thresh = skifi.threshold_sauvola(image_blurred, window_size = parameters["window_size_thresholding"])
+        print("Using thresholding method sauvola")
     if parameters["thresholding_method"] == "yen":
         thresh = skifi.threshold_yen(image_blurred)
     if parameters["thresholding_method"] == "triangle":
-    	thresh = skifi.threshold_yen(image_blurred)
+        thresh = skifi.threshold_yen(image_blurred)
     if parameters["thresholding_method"] == "local":
-    	thresh = skifi.threshold_local(image_blurred)
+        thresh = skifi.threshold_local(image_blurred)
 
     #image_mask = np.where(image_blurred > thresh, True, False)
     image_mask = image_blurred > thresh

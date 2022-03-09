@@ -100,10 +100,10 @@ def otsu_thresholding_3D_allFrames(parameters, movie):
         print("Time point: " + str(tp))
         # mask[tp] = otsu_thresholding_3D(parameters, movie[tp])
         tumor_labels[tp], thresh = otsu_thresholding_3D(parameters, im_tumor[tp])
-        macrophages_labels[tp], thresh = otsu_thresholding_3D(parameters, im_macrophages[tp])
+        macrophage_labels[tp], thresh = otsu_thresholding_3D(parameters, im_macrophages[tp])
         vessel_labels[tp], thresh = otsu_thresholding_3D(parameters, im_vessels[tp])
 
-    return tumor_labels, macrophages_labels, vessel_labels
+    return tumor_labels, macrophage_labels, vessel_labels
     # return mask
 
 

@@ -17,13 +17,16 @@ import math
 import scipy.ndimage as ndi
 import sys
 from cellpose import models, io, plot
-sys.path.insert(0,"../")
+#sys.path.insert(0,"../")
+
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+print(sys.path)
 import functions_common
 import datetime
 
 ### read parameters
 
-parameters = functions_common.read_parameters(base_folder = "../base/", local_folder = "../local/")
+parameters = functions_common.read_parameters(base_folder = "base/", local_folder = "local/")
 print("#"*5,"parameters","#"*5)
 print(parameters)
 key_file = functions_common.read_key_file(parameters)
