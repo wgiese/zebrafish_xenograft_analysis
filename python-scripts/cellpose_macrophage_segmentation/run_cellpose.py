@@ -15,32 +15,18 @@ import math
 from scipy.ndimage import gaussian_filter
 import sys
 from cellpose import models, io, plot
+sys.path.insert(0,"../")
+import functions_common
+import datetime
 
 ### read parameters
 
-if len(sys.argv) > 0:
-    parameter_file = sys.argv[1] 
-else:
-    print("please provide a parameters file")
-    
-print("Use parameter file %s" % parameter_file)
-
-def read_parameters(parameter_file):
-
-    parameters = dict()
-
-    with open("../base/parameters.yml") as file:
-        parameters = yaml.load(file, Loader=yaml.FullLoader)
-    with open(parameter_file) as file:
-        parameters_local = yaml.load(file, Loader=yaml.FullLoader)
-
-    # overwrite global parameters with local setting
-    for key in parameters_local:
-        parameters[key] = parameters_local[key]
-    
-    return parameters
-
-parameters = read_parameters(parameter_file)
+parameters = functions_common.read_parameters(base_folder = "../base/", local_folder = "../local/")
+print("#"*5,"parameters","#"*5)
+print(parameters)
+key_file = functions_common.read_key_file(parameters)
+print("#"*5,"key_file","#"*5)
+print(key_file.head())
 
 print("Parameters:")
 print(parameters)

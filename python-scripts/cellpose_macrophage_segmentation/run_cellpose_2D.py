@@ -36,6 +36,8 @@ injection_time_dpi = parameters["dpi"]
 filter_experiments = parameters["filter_experiments"]
 skip_experiments = parameters["skip_experiments"]
 
+print("injection time:")
+print(injection_time_dpi)
 
 ### setup paths to data
 
@@ -45,9 +47,11 @@ use_gpu = parameters["use_gpu"]
 output_folder = parameters["cp_output_path"]
 
 # filter key file
-
-key_file = key_file[key_file["dpi"]==injection_time_dpi]
+if (not isinstance(injection_time_dpi, list)): 
+  key_file = key_file[key_file["dpi"]==injection_time_dpi]
 key_file = key_file[~key_file["short_name"].isin(skip_experiments)]
+key_file = key_file.dropna(subset=["short_name"])
+
 
 if filter_experiments == "annotated":
     print("only use annotated (2D coordinates) macrophages")
@@ -75,6 +79,9 @@ else:
 # iterate over key file, every rowlinks to one image time series and contains corresponding meta information
 
 for index, row in key_file.iterrows():
+
+    #if np.isnan(row["short_name"]):
+    #    continue
 
     print("short name (of experiment):", row['short_name'])
 
