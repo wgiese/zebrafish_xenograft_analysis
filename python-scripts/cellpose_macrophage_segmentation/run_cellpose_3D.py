@@ -158,7 +158,7 @@ for index, row in key_file.iterrows():
         ax.imshow(macrophage_img_2D, cm.binary)
         ax.imshow(np.ma.masked_where(masks_2D == 0, masks_2D), cm.Set3, alpha = 0.5)
         
-        savefig(output_folder + short_name + "-%s-cellpose.png" % time)
+        plt.savefig(output_folder + short_name + "-%s-cellpose.png" % time)
         plt.close()
 
         for mask_id in np.unique(masks):
@@ -168,22 +168,27 @@ for index, row in key_file.iterrows():
                                                         
             #print(mask_id)
             single_cell_mask = np.where(masks == mask_id, 1, 0)
-            regions = skimage.measure.regionprops(single_cell_mask)
-
+            regions = skimage.measure.regionprops(single_cell_mask, intensity_image = macrophage_img)
+            
             for props in regions:
                 z_cell, x_cell, y_cell = props.centroid
-                # note, the values of orientation from props are in [-pi/2,pi/2] with zero along the y-axis
+                #minor_axis_length = props.minor_axis_length
+                #major_axis_length = props.major_axis_length
+                #eccentricity = props.eccentricity
+                mean_intensity = props.mean_intensity
+                max_intensity = props.max_intensity
+                min_intensity = props.min_intensity
+                #perimeter = props.perimeter  
                 voxels = props.area
-                #perimeter = props.perimeter
 
             coordinates_3D.at[index,"short_name"] = short_name
             coordinates_3D.at[index,"fish_id"] = fish_id
             coordinates_3D.at[index,"time_point"] = time
             coordinates_3D.at[index,"number"] = mask_id
             coordinates_3D.at[index,"volume_in_voxels"] = voxels
-            #coordinates_2D.at[index,"Mean"] = mean_intensity
-            #coordinates_2D.at[index,"Min"] = min_intensity
-            #coordinates_2D.at[index,"Max"] = max_intensity
+            coordinates_3D.at[index,"Mean"] = mean_intensity
+            coordinates_3D.at[index,"Min"] = min_intensity
+            coordinates_3D.at[index,"Max"] = max_intensity
             coordinates_3D.at[index,"X"] = x_cell
             coordinates_3D.at[index,"Y"] = y_cell
             coordinates_3D.at[index,"Z"] = z_cell
@@ -198,6 +203,8 @@ for index, row in key_file.iterrows():
                                                                                                                                                                                                       
             index +=1
 
+        coordinates_3D.to_csv(output_folder + short_name + ".csv", sep=";", index = False)
+        
     analysis_summary.at[index_summary, "properties_saved"] = "yes"
     analysis_summary.to_csv(output_folder + "analysis_summary.csv", index = False)
     
