@@ -28,47 +28,141 @@ key_file = functions_common.read_key_file(parameters)
 print("#"*5,"key_file","#"*5)
 print(key_file.head())
 
-print("Parameters:")
-print(parameters)
+### filter experiments
 
-#filename = parameters['image_path']
-### remove later
+#experiments = "annotated"
+experiments = "all"
+injection_time_dpi = parameters["dpi"]
+filter_experiments = parameters["filter_experiments"]
+skip_experiments = parameters["skip_experiments"]
+
+print("injection time:")
+print(injection_time_dpi)
+
 data_path = parameters["data_folder"]
+folder_3d_data = "/03_Preprocessed_Data/02_3D/"
+use_gpu = parameters["use_gpu"]
+output_folder = parameters["cp_3D_output_path"]
 
-filename = data_path + "Series-1-z-stack-macrophages.tif"
+# filter key file
+if (not isinstance(injection_time_dpi, list)):
+  key_file = key_file[key_file["dpi"]==injection_time_dpi]
+key_file = key_file[~key_file["short_name"].isin(skip_experiments)]
+key_file = key_file.dropna(subset=["short_name"])
 
 
-img = skimage.io.imread(filename)
-output_path = parameters['output_folder']
-output_filename = parameters["output_filename"]
-output_filepath = output_path + output_filename
+analysis_summary_path = output_folder + "analysis_summary.csv"
+index_summary = 0
+
+if parameters["resume"]:
+    analysis_summary = pd.read_csv(analysis_summary_path)
+    analysis_summary = analysis_summary[analysis_summary["properties_saved"]=="yes"]
+    index_summary = analysis_summary.shape[0]
+    set_types = {"short_name" : "object", "dpi" : "int8",
+                "properties_saved" : "object", "cellpose_diameter": "float32",
+                "cellpose_model" : "object"}
+    analysis_summary = analysis_summary.astype(set_types)
+    print(analysis_summary.dtypes)
+else:
+    analysis_summary = pd.DataFrame()
+
+
+for index, row in key_file.iterrows():
+
+    #if np.isnan(row["short_name"]):
+    #    continue
+
+    print("short name (of experiment):", row['short_name'])
+
+    if parameters["resume"]:
+        if row["short_name"] in list(analysis_summary["short_name"]):
+            print("%s  already analysed -> skip")
+            continue
+
+    now = datetime.datetime.now()
+    date_time = now.strftime("%Y-%m-%d %H:%M:%S")
+
+    analysis_summary.at[index_summary, "short_name"] = row["short_name"]
+    analysis_summary.at[index_summary, "dpi"] = row["dpi"]
+    analysis_summary.at[index_summary, "properties_saved"] = "no"
+    analysis_summary.at[index_summary, "cellpose_diameter"] = parameters["diameter"]
+    analysis_summary.at[index_summary, "cellpose_model"] = str(parameters["cp_model_path"])
+    analysis_summary.at[index_summary, "date_time"] = date_time
+
+    analysis_summary.to_csv(output_folder + "analysis_summary.csv", index = False)
+
+    short_name = str(row["short_name"])
+    file_path = data_path + folder_3d_data + short_name + ".tif"
+    fish_id = short_name.split("_")[0] + "_" + short_name.split("_")[1] + "_" + short_name.split("_")[3]
+    
+    if not os.path.exists(file_path):
+        print(file_path)
+        print("file path does not exist!")
+        index_summary += 1
+        continue
+
+    print("open image file:", file_path)
+
+    img = skimage.io.imread(file_path)
+
+    print("image dimensions: ")
+    print(img.shape)
+
+    coordinates_3D = pd.DataFrame()
+    index = 0
+
+    for time in range(img.shape[0]):
+        print(time)
+
+        # TODO: check channel order needed for cellpose, in the documentation it says "segment list of images x, or 4D array - Z x nchan x Y x X"
+
+        macrophage_img = img[time,:,:,:,parameters["channel_macrophages"]]
+
+        channels = [0,0]
+
+        if parameters["cp_model_path"] == "None":
+            model = models.Cellpose(gpu=use_gpu, model_type='cyto')
+        else:
+            model = models.CellposeModel(gpu=use_gpu, pretrained_model = parameters["cp_model_path"]) 
+
+        if parameters["diameter"] == "None":
+            masks, flows, styles = model.eval(macrophage_img, diameter=None, channels=channels)
+        else:
+            masks, flows, styles = model.eval(macrophage_img, diameter=parameters["diameter"], channels=channels, anisotropy = parameters["anisotropy"], z_axis = parameters["z_axis"], flow_threshold = parameters["flow_threshold"], stitch_threshold = parameters["stitch_threshold"])
+
+### old code
+
+#img = skimage.io.imread(filename)
+#output_path = parameters['output_folder']
+#output_filename = parameters["output_filename"]
+#output_filepath = output_path + output_filename
 
 # extract channels
 
-print(img.shape)
+#print(img.shape)
 
 #img = img.reshape((img.shape[1],img.shape[2],img.shape[0]))
 
 #print(img.shape)
 
-use_gpu = parameters["use_gpu"]
-model = models.Cellpose(gpu=use_gpu, model_type='cyto')
+#use_gpu = parameters["use_gpu"]
+#model = models.Cellpose(gpu=use_gpu, model_type='cyto')
 
 # choice for greyscale
-channels = [0,0]
+#channels = [0,0]
 
-masks, flows, styles, diams = model.eval(img, diameter=40, channels=channels, anisotropy = 2.5, do_3D = True)
+#masks, flows, styles, diams = model.eval(img, diameter=40, channels=channels, anisotropy = 2.5, do_3D = True)
 
-io.masks_flows_to_seg(img , masks, flows, diams, output_filepath , channels)
+#io.masks_flows_to_seg(img , masks, flows, diams, output_filepath , channels)
 
 # load result
-cellpose_seg = np.load(output_filepath + "_seg.npy", allow_pickle=True)
+#cellpose_seg = np.load(output_filepath + "_seg.npy", allow_pickle=True)
 
-mask = cellpose_seg.item()['masks']
-for key in cellpose_seg.item():
-    print(key)
+#mask = cellpose_seg.item()['masks']
+#for key in cellpose_seg.item():
+#    print(key)
 
-print(mask.shape)
+#print(mask.shape)
 
 '''
 im_junction = img[:,:,parameters["channel_junction"]]

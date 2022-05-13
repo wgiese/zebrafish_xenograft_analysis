@@ -46,6 +46,15 @@ filter_experiments: "none" # options: "none" or "annotated"
 export_masks : npy # or vtk or none
 resume: False
 plot_properties : False
+flow_threshold : 0.4 # cellpose default is 0.4
+cellprob_threshold: 0.0  # cellpose default is 0.0 , TODO: unused at the moment
+
+### 3D stitch
+
+stitch_threshold: 0.1
+anisotropy: 2.5 # TODO: check impact on segmentation, https://cellpose.readthedocs.io/en/latest/settings.html
+z_axis: 0 # position of z-axis, in the cellpose documentation it is stated "segment list of images x, or 4D array - Z x nchan x Y x X"
+
 
 # time series analysis
 

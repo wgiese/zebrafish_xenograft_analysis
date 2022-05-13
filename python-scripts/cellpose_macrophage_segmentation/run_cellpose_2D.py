@@ -76,7 +76,7 @@ else:
     analysis_summary = pd.DataFrame()
 
 
-# iterate over key file, every rowlinks to one image time series and contains corresponding meta information
+# iterate over key file, every row links to one image time series and contains corresponding meta information
 
 for index, row in key_file.iterrows():
 
