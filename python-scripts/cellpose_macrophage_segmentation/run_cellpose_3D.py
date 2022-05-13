@@ -11,6 +11,7 @@ from cellpose import utils
 from matplotlib import cm
 from skimage.filters import threshold_otsu
 from skimage.measure import label, regionprops, regionprops_table
+from skimage import morphology
 import math
 from scipy.ndimage import gaussian_filter
 import sys
@@ -117,6 +118,9 @@ for index, row in key_file.iterrows():
         # TODO: check channel order needed for cellpose, in the documentation it says "segment list of images x, or 4D array - Z x nchan x Y x X"
 
         macrophage_img = img[time,:,:,:,parameters["channel_macrophages"]]
+      
+        print("shape of macrophage image:")
+        print(macrophage_img.shape)
 
         channels = [0,0]
 
@@ -129,6 +133,77 @@ for index, row in key_file.iterrows():
             masks, flows, styles = model.eval(macrophage_img, diameter=None, channels=channels)
         else:
             masks, flows, styles = model.eval(macrophage_img, diameter=parameters["diameter"], channels=channels, anisotropy = parameters["anisotropy"], z_axis = parameters["z_axis"], flow_threshold = parameters["flow_threshold"], stitch_threshold = parameters["stitch_threshold"])
+        
+        print("shape of masks:")
+        print(masks.shape)
+
+
+        
+
+        masks = skimage.segmentation.clear_border(masks)
+        masks = morphology.remove_small_objects(masks, parameters["min_macrophage_voxels"], connectivity=2)
+        
+        print("shape of masks after clear borders and small object removal:")
+        print(masks.shape)
+
+
+        number_labels = len(np.unique(masks))
+
+        print("Found %s macrophages" % number_labels)
+      
+        macrophage_img_2D = np.amax(macrophage_img, axis=0)
+        masks_2D = np.amax(masks, axis=0)
+
+        fig, ax = plt.subplots(figsize=(15,15))
+        ax.imshow(macrophage_img_2D, cm.binary)
+        ax.imshow(np.ma.masked_where(masks_2D == 0, masks_2D), cm.Set3, alpha = 0.5)
+        
+        savefig(output_folder + short_name + "-%s-cellpose.png" % time)
+        plt.close()
+
+        for mask_id in np.unique(masks):
+        
+            if mask_id == 0:
+                continue
+                                                        
+            #print(mask_id)
+            single_cell_mask = np.where(masks == mask_id, 1, 0)
+            regions = skimage.measure.regionprops(single_cell_mask)
+
+            for props in regions:
+                z_cell, x_cell, y_cell = props.centroid
+                # note, the values of orientation from props are in [-pi/2,pi/2] with zero along the y-axis
+                voxels = props.area
+                #perimeter = props.perimeter
+
+            coordinates_3D.at[index,"short_name"] = short_name
+            coordinates_3D.at[index,"fish_id"] = fish_id
+            coordinates_3D.at[index,"time_point"] = time
+            coordinates_3D.at[index,"number"] = mask_id
+            coordinates_3D.at[index,"volume_in_voxels"] = voxels
+            #coordinates_2D.at[index,"Mean"] = mean_intensity
+            #coordinates_2D.at[index,"Min"] = min_intensity
+            #coordinates_2D.at[index,"Max"] = max_intensity
+            coordinates_3D.at[index,"X"] = x_cell
+            coordinates_3D.at[index,"Y"] = y_cell
+            coordinates_3D.at[index,"Z"] = z_cell
+            coordinates_3D.at[index,"dt_min"] = row["dt_min"]
+            coordinates_3D.at[index,"time_in_min"] = row["dt_min"]*time
+            #coordinates_2D.at[index,"minor_axis_length"] = minor_axis_length
+            #coordinates_2D.at[index,"major_axis_length"] = major_axis_length
+            #coordinates_2D.at[index,"major_minor_ratio"] = major_axis_length/minor_axis_length
+            #coordinates_2D.at[index,"perimeter"] = perimeter
+            #coordinates_2D.at[index,"eccentricity"] = eccentricity
+            coordinates_3D.at[index,"cancer_cells"] = row["cancer_cells"]
+                                                                                                                                                                                                      
+            index +=1
+
+    analysis_summary.at[index_summary, "properties_saved"] = "yes"
+    analysis_summary.to_csv(output_folder + "analysis_summary.csv", index = False)
+    
+    index_summary += 1
+                                                                                                                                                                                                                                                                                                                
+
 
 ### old code
 
