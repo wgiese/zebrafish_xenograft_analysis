@@ -174,29 +174,31 @@ for index, row in key_file.iterrows():
         annotations_file = parameters["data_folder"] + "04_Processed_Data/01_Annotated_Macrophages/" + short_name + '.csv'
         if os.path.exists(annotations_file):
             annotated_positions = pd.read_csv(annotations_file, sep = ";")
-            print("annotated postions file exists ...")
+            print("annotated positions file exists ...")
             print(annotated_positions.head())
             annotated_df = annotated_positions[annotated_positions["time_point"] == time]
-            ax.plot(annotated_df['X'], annotated_df['Y'], 'rx', markersize = 15)
+            ax.plot(annotated_df['X'], annotated_df['Y'], 'go', markersize = 15)
         else:
             print("Annotation can not be loaded, file does not exist.")
-        
-        plt.savefig(output_folder + short_name + "-%s-cellpose.png" % time)
+                
+        out_filepath = output_folder + short_name + "-%s-cellpose.png" % time
+        print("Saving to ", out_filepath)
+        plt.savefig(out_filepath)
         plt.close()
        
-        if os.path.exists(annotations_file):
-            fig, ax = plt.subplots(figsize=(15,15))
-            ax.imshow(macrophage_img, cm.binary)
-            plt.savefig(output_folder + short_name + "-%s-annotations.png" % time)
-            annotated_positions = pd.read_csv(annotations_file, sep = ";")
-            print("annotated postions file exists ...")
-            print(annotated_positions.head())
-            annotated_df = annotated_positions[annotated_positions["time_point"] == time]
-            ax.plot(annotated_df['X'], annotated_df['Y'], 'rx', markersize = 15)
-            #plt.savefig(output_folder + short_name + "-%s-annotations.png" % time)
-            plt.close()
-        else:
-            print("Annotation can not be loaded, file does not exist.")
+        #if os.path.exists(annotations_file):
+        #    fig, ax = plt.subplots(figsize=(15,15))
+        #    ax.imshow(macrophage_img, cm.binary)
+        #    plt.savefig(output_folder + short_name + "-%s-annotations.png" % time)
+        #    annotated_positions = pd.read_csv(annotations_file, sep = ";")
+        #    print("annotated postions file exists ...")
+        #    print(annotated_positions.head())
+        #    annotated_df = annotated_positions[annotated_positions["time_point"] == time]
+        #    ax.plot(annotated_df['X'], annotated_df['Y'], 'rx', markersize = 15)
+        #    #plt.savefig(output_folder + short_name + "-%s-annotations.png" % time)
+        #    plt.close()
+        #else:
+        #    print("Annotation can not be loaded, file does not exist.")
         
         if parameters["plot_properties"]:
             fig, ax = plt.subplots(figsize=(15,15))
@@ -204,6 +206,16 @@ for index, row in key_file.iterrows():
             ax.imshow(np.ma.masked_where(masks == 0, masks), cm.Set3, alpha = 0.5)
             ax.imshow(np.ma.masked_where(outlines_ == 0, outlines_),  plt.cm.Reds, vmin=0, vmax=100, alpha = 0.5)
         
+            if os.path.exists(annotations_file):
+                annotated_positions = pd.read_csv(annotations_file, sep = ";")
+                print("annotated positions file exists ...")
+                print(annotated_positions.head())
+                annotated_df = annotated_positions[annotated_positions["time_point"] == time]
+                ax.plot(annotated_df['X'], annotated_df['Y'], 'go', markersize = 15)
+            else:
+                print("Annotation can not be loaded, file does not exist.")
+         
+
         for mask_id in np.unique(masks):
     
             if mask_id == 0:
