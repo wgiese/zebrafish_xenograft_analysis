@@ -283,8 +283,10 @@ for index, row in key_file.iterrows():
             coordinates_2D.at[index,"Mean"] = mean_intensity
             coordinates_2D.at[index,"Min"] = min_intensity
             coordinates_2D.at[index,"Max"] = max_intensity
-            coordinates_2D.at[index,"X"] = x_cell
-            coordinates_2D.at[index,"Y"] = y_cell
+            #coordinates_2D.at[index,"X"] = x_cell
+            #coordinates_2D.at[index,"Y"] = y_cell
+            coordinates_2D.at[index,"X"] = y_cell
+            coordinates_2D.at[index,"Y"] = x_cell
             coordinates_2D.at[index,"dt_min"] = row["dt_min"]
             coordinates_2D.at[index,"time_in_min"] = row["dt_min"]*time
             coordinates_2D.at[index,"minor_axis_length"] = minor_axis_length
