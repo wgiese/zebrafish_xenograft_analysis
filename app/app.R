@@ -76,7 +76,10 @@ Okabe_Ito <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00",
 
 #Read a text file with demo data (comma separated values)
 df_wide_example <- read.csv("Data_wide_example_time_single.csv", na.strings = "")
-df_tidy_example <- read.csv("Data_tidy_example_time_multi.csv")
+#df_tidy_example <- read.csv("Data_tidy_example_time_multi.csv")
+#df_tidy_example <- read.csv("macrophage_count_1dpi_and_5dpi.csv")
+df_macrophage_count <- read.csv("macrophage_count_1dpi_and_5dpi.csv")
+df_tumor_volumes <- read.csv("tumor_volumes_1dpi.csv")
 
 # Create a reactive object here that we can share between all the sessions.
 vals <- reactiveValues(count=0)
@@ -84,7 +87,7 @@ vals <- reactiveValues(count=0)
 ###### UI: User interface #########
 
 ui <- fluidPage(
-  titlePanel("PlotTwist - a web app for plotting continuous data"),
+  titlePanel("PlotTwistXeno - a web app for platting tumor, blood vessel and macrophage interactions"),
   sidebarLayout(
     sidebarPanel(width=3,
                  conditionalPanel(
@@ -191,8 +194,8 @@ ui <- fluidPage(
                    radioButtons(
                      "data_input", "",
                      choices = 
-                       list("Example 1 (wide format)" = 1,
-                            "Example 2 (tidy format)" = 2,
+                       list("Tumor volumes" = 1,
+                            "Macrophage counts" = 2,
                             "Upload (multiple) file(s)" = 3,
                             "Paste data" = 4,
                             "URL (csv files only)" = 5)
@@ -527,13 +530,13 @@ observeEvent(input$change_scale2, {
   
 df_upload <- reactive({
     if (input$data_input == 1) {
-      data <- df_wide_example
-      data$id <- "1"
+      data <- df_tumor_volumes
+      #data$id <- "1"
 
     }  else if (input$data_input == 2) {
 #      
       updateSelectInput(session, "tidyInput", selected = TRUE)
-      data <- df_tidy_example
+      data <- df_macrophage_count
 
     } else if (input$data_input == 3) {
       if (is.null(input$upload)) {
@@ -681,19 +684,21 @@ df_upload_tidy <- reactive({
   
   koos <- df_upload()
 
-  if(input$tidyInput == FALSE ) {
-    koos <- df_filtered()
-    klaas <- gather(koos, Sample, Value, -Time, -id)
-
-    klaas <- klaas %>% mutate (Time = as.numeric(Time), Value = as.numeric(Value))
-  }
+#  if(input$tidyInput == FALSE ) {
+#    koos <- df_filtered()
+#    klaas <- gather(koos, Sample, Value, -Time, -id)
+#
+#    klaas <- klaas %>% mutate (Time = as.numeric(Time), Value = as.numeric(Value))
+#  }
   
-  else if(input$tidyInput == TRUE ) {
+ # else if(input$tidyInput == TRUE ) {
 
-#   klaas <- koos
-   klaas <- df_filtered()   
-        
-  }
+##   klaas <- koos
+  # klaas <- df_filtered()   
+  #      
+  #}
+    
+  klaas <- df_filtered()   
   return(klaas)
 })
 
