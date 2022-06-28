@@ -79,7 +79,10 @@ df_wide_example <- read.csv("Data_wide_example_time_single.csv", na.strings = ""
 #df_tidy_example <- read.csv("Data_tidy_example_time_multi.csv")
 #df_tidy_example <- read.csv("macrophage_count_1dpi_and_5dpi.csv")
 df_macrophage_count <- read.csv("macrophage_count_1dpi_and_5dpi.csv")
-df_tumor_volumes <- read.csv("tumor_volumes_1dpi.csv")
+df_tumor_volumes_1dpi <- read.csv("tumor_volumes_1dpi.csv")
+df_tumor_volumes_5dpi <- read.csv("tumor_volumes_5dpi.csv")
+df_tumor_volumes <- rbind(df_tumor_volumes_1dpi, df_tumor_volumes_5dpi)
+
 
 # Create a reactive object here that we can share between all the sessions.
 vals <- reactiveValues(count=0)
