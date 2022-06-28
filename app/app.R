@@ -127,7 +127,7 @@ ui <- fluidPage(
                                  value = TRUE),
                    conditionalPanel(
                      condition = "input.add_2nd_scale == true",
-                     textInput("range_x_2nd", "Range 2nd x-axis (min,max)", value = "7000,7300")
+                     textInput("range_x_2nd", "Range 2nd x-axis (min,max)", value = "6840,7200")
                    ),
 
                    conditionalPanel(
@@ -240,24 +240,24 @@ ui <- fluidPage(
                    ),
                    
                    # 
-                   checkboxInput(inputId = "tidyInput",
-                                  label = "These data are Tidy",
-                                  value = FALSE),
-                   conditionalPanel(
-                     condition = "input.tidyInput==false", selectInput("data_remove", "Deselect these columns:", "", multiple = TRUE)),
+                   #checkboxInput(inputId = "tidyInput",
+                   #               label = "These data are Tidy",
+                   #               value = TRUE),
+                   #conditionalPanel(
+                   #  condition = "input.tidyInput==false", selectInput("data_remove", "Deselect these columns:", "", multiple = TRUE)),
                    
                    
-                    conditionalPanel(condition = "input.tidyInput==true",
+                    #conditionalPanel(condition = "input.tidyInput==true",
             
                       selectInput("x_var", "Select variable for x-axis", choices = ""),
                       selectInput("y_var", "Select variable for y-axis", choices = ""),
                       selectInput("g_var", "Identifier of samples", choices = ""),
                       selectInput("c_var", "Identifier of conditions", choices = ""),
                       selectInput("filter_column", "Filter based on this parameter:", choices = ""),
-                      selectInput("remove_these_conditions", "Deselect these conditions:", "", multiple = TRUE)
+                      selectInput("remove_these_conditions", "Deselect these conditions:", "", multiple = TRUE),
                       
 
-                    ),
+                    #),
                     downloadButton("downloadData", "Download (tidy) data (csv)"),
                     hr(),
 
@@ -535,7 +535,7 @@ df_upload <- reactive({
 
     }  else if (input$data_input == 2) {
 #      
-      updateSelectInput(session, "tidyInput", selected = TRUE)
+      #updateSelectInput(session, "tidyInput", selected = TRUE)
       data <- df_macrophage_count
 
     } else if (input$data_input == 3) {
@@ -584,9 +584,9 @@ df_upload <- reactive({
       } else if (url.exists(input$URL) == FALSE) {
         return(data.frame(x = paste("Not a valid URL: ",input$URL)))
       } else {data <- read_csv(input$URL)}
-      if(input$tidyInput == FALSE ) {
-            data$id <- "1"
-      }
+      #if(input$tidyInput == FALSE ) {
+      #      data$id <- "1"
+      #}
       
       
     } else if (input$data_input == 4) {
@@ -709,11 +709,18 @@ observe({
   var_names  <- names(df_upload())
   var_list <- c("none", var_names)
   #        updateSelectInput(session, "colour_list", choices = var_list)
+  #updateSelectInput(session, "y_var", choices = var_list, selected="Value")
+  #updateSelectInput(session, "x_var", choices = var_list, selected="Time")
+  #updateSelectInput(session, "c_var", choices = var_list, selected="id")
+  #updateSelectInput(session, "g_var", choices = var_list, selected="Sample")
+  #updateSelectInput(session, "filter_column", choices = var_list, selected="none")
   updateSelectInput(session, "y_var", choices = var_list, selected="Value")
   updateSelectInput(session, "x_var", choices = var_list, selected="Time")
-  updateSelectInput(session, "c_var", choices = var_list, selected="id")
-  updateSelectInput(session, "g_var", choices = var_list, selected="Sample")
+  updateSelectInput(session, "c_var", choices = var_list, selected="cancer_cells")
+  updateSelectInput(session, "g_var", choices = var_list, selected="fish_id")
   updateSelectInput(session, "filter_column", choices = var_list, selected="none")
+
+
 })
 
 
@@ -770,7 +777,7 @@ observe({
 #    observe(print((presets_data)))
     
     updateRadioButtons(session, "data_input", selected = presets_data[1])    
-    updateCheckboxInput(session, "tidyInput", value = presets_data[2])
+    #updateCheckboxInput(session, "tidyInput", value = presets_data[2])
 
     updateCheckboxInput(session, "normalization", value = presets_data[3])
 
@@ -908,7 +915,8 @@ url <- reactive({
   
   base_URL <- paste(sep = "", session$clientData$url_protocol, "//",session$clientData$url_hostname, ":",session$clientData$url_port, session$clientData$url_pathname)
   
-  data <- c(input$data_input, input$tidyInput, input$normalization, input$norm_type, input$base_range, "")
+  #data <- c(input$data_input, input$tidyInput, input$normalization, input$norm_type, input$base_range, "")
+  data <- c(input$data_input, input$normalization, input$norm_type, input$base_range, "")
   
   vis <- c(input$data_form, input$alphaInput, input$summaryInput, input$add_CI, input$alphaInput_summ, input$multiples, input$thicken)
   layout <- c(" ", input$no_grid, input$change_scale, input$range_x, input$range_y, input$color_data, input$color_stats,
@@ -975,7 +983,7 @@ observeEvent(input$settings_copy , {
 ######## Extract the data for display & summary stats #######  
 
 df_selected <- reactive({
-  if(input$tidyInput == TRUE ) {
+  #if(input$tidyInput == TRUE ) {
     df_temp <- df_upload_tidy()
     
     x_choice <- input$x_var
@@ -1005,18 +1013,18 @@ df_selected <- reactive({
     }
 
     
-  } else if (input$tidyInput == FALSE ) {
+  #} else if (input$tidyInput == FALSE ) {
 #    koos <- df_upload_tidy() %>% filter(!is.na(Value))
-    koos <- df_upload_tidy()
-    
-    
-    if (koos$id !="1") {
-      koos <- unite(koos, unique_id, c(id, Sample), sep="_", remove = FALSE)
-    } else if (koos$id=="1") {
-      #No need to generate a new id when only one condition is present
-      koos <- unite(koos, unique_id, c(NULL, Sample), sep="", remove = FALSE)
-    }
-  }
+ #   koos <- df_upload_tidy()
+ #   
+ #   
+ #   if (koos$id !="1") {
+ #     koos <- unite(koos, unique_id, c(id, Sample), sep="_", remove = FALSE)
+ #   } else if (koos$id=="1") {
+ #     #No need to generate a new id when only one condition is present
+ #     koos <- unite(koos, unique_id, c(NULL, Sample), sep="", remove = FALSE)
+ #   }
+ # }
   
   
   #### Check if x-axis is date by checking for 2 dashes or 2 slashes in the first cell x
