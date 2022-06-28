@@ -119,7 +119,7 @@ ui <- fluidPage(
                                  value = TRUE),
                    conditionalPanel(
                      condition = "input.change_scale == true",
-                     textInput("range_x", "Range x-axis (min,max)", value = "1400,2400")
+                     textInput("range_x", "Range x-axis (min,max)", value = "24,40")
                    ),
                    
                    checkboxInput(inputId = "add_2nd_scale",
@@ -127,7 +127,7 @@ ui <- fluidPage(
                                  value = TRUE),
                    conditionalPanel(
                      condition = "input.add_2nd_scale == true",
-                     textInput("range_x_2nd", "Range 2nd x-axis (min,max)", value = "6840,7200")
+                     textInput("range_x_2nd", "Range 2nd x-axis (min,max)", value = "114,119")
                    ),
 
                    conditionalPanel(
@@ -530,11 +530,15 @@ observeEvent(input$change_scale2, {
   
 df_upload <- reactive({
     if (input$data_input == 1) {
+      
+      df_tumor_volumes["time_in_h"] <- df_tumor_volumes["time_in_min"]/60.0
       data <- df_tumor_volumes
       #data$id <- "1"
 
+
     }  else if (input$data_input == 2) {
 #      
+      df_macrophage_count["time_in_h"] <- df_macrophage_count["time_in_min"]/60.0
       #updateSelectInput(session, "tidyInput", selected = TRUE)
       data <- df_macrophage_count
 
@@ -567,9 +571,9 @@ df_upload <- reactive({
           }
 
           #Force the first column from the csv file to be labeled as "Time" if this columns is absent          
-          if(input$tidyInput == FALSE && !"Time" %in% colnames(df_input)) {
-          names(df_input)[2] <- "Time"
-          }
+          #if(input$tidyInput == FALSE && !"Time" %in% colnames(df_input)) {
+          #names(df_input)[2] <- "Time"
+          #}
           data <- df_input
           
         })
@@ -715,7 +719,7 @@ observe({
   #updateSelectInput(session, "g_var", choices = var_list, selected="Sample")
   #updateSelectInput(session, "filter_column", choices = var_list, selected="none")
   updateSelectInput(session, "y_var", choices = var_list, selected="Value")
-  updateSelectInput(session, "x_var", choices = var_list, selected="Time")
+  updateSelectInput(session, "x_var", choices = var_list, selected="time_in_h")
   updateSelectInput(session, "c_var", choices = var_list, selected="cancer_cells")
   updateSelectInput(session, "g_var", choices = var_list, selected="fish_id")
   updateSelectInput(session, "filter_column", choices = var_list, selected="none")
