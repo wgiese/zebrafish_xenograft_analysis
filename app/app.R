@@ -1444,7 +1444,7 @@ plot_data <- reactive({
     
         }
         myplots <- lapply(1:2, plotseries)
-        res <- grid.arrange(grobs = myplots, ncol = 2)
+        res <- grid.arrange(grobs = myplots, ncol = 2, widths = c(17,5))
 
     }
     else {
