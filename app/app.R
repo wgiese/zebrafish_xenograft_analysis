@@ -90,7 +90,7 @@ vals <- reactiveValues(count=0)
 ###### UI: User interface #########
 
 ui <- fluidPage(
-  titlePanel("PlotTwistXeno - a web app for platting tumor, blood vessel and macrophage interactions"),
+  titlePanel("PlotTwistXeno - a web app for plotting tumor, blood vessel and macrophage interactions"),
   sidebarLayout(
     sidebarPanel(width=3,
                  conditionalPanel(
