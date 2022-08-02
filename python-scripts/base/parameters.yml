@@ -2,8 +2,12 @@
 
 data_folder: "/folder/to/data/"
 key_file_path: "/00_Extra/Details_imaging_data_3D.xls"
-image_file_path: "/03_Preprocessed_Data/02_3D/"
+image_file_path_2D: "/03_Preprocessed_Data/01_2D/"
+image_file_path_3D: "/03_Preprocessed_Data/02_3D/"
 output_folder: "/folder/to/output/"
+
+
+
 
 channel_tumor : 0
 channel_macrophages: 1
@@ -34,6 +38,8 @@ window_size_thresholding: 31 # only applies for local thresholding methods
 skip_experiments: []  
 segmentation_method: "common" # or "Watershed"
 macrophages_small_objects: 350   # physical size of "debry" in microns^3 that will be taken out of macrophage mask
+file_ext : "*.tif"
+
 
 # cellpose segmentation
 use_gpu: False
