@@ -20,10 +20,23 @@ from cellpose import models, io, plot
 sys.path.insert(0,"../")
 import functions_common
 import datetime
+import argparse
+
 
 ### read parameters
 
-parameters = functions_common.read_parameters(base_folder = "../base/", local_folder = "../local/")
+parser = argparse.ArgumentParser(description='Run cellpose macrophage segmentation.')
+parser.add_argument('param', type=str, help='Path to the parameter file.')
+
+args = parser.parse_args()
+print("-------")
+print("reading parameters from: ", args.param)
+print("-------")
+
+parameter_file  = args.param
+
+#parameters = functions_common.read_parameters(base_folder = "../base/", local_folder = "../local/")
+parameters = functions_common.read_parameters(base_params = "../base/parameters.yml", local_params = parameter_file)
 print("#"*5,"parameters","#"*5)
 print(parameters)
 key_file = functions_common.read_key_file(parameters)
@@ -42,7 +55,7 @@ print(injection_time_dpi)
 ### setup paths to data
 
 data_path = parameters["data_folder"]
-folder_2d_data = "/03_Preprocessed_Data/01_2D/"
+folder_2d_data = parameters['image_file_path_2D']#"/03_Preprocessed_Data/01_2D/"
 use_gpu = parameters["use_gpu"]
 output_folder = parameters["cp_output_path"]
 
@@ -99,11 +112,13 @@ for index, row in key_file.iterrows():
     analysis_summary.at[index_summary, "cellpose_diameter"] = parameters["diameter"]
     analysis_summary.at[index_summary, "cellpose_model"] = str(parameters["cp_model_path"])
     analysis_summary.at[index_summary, "date_time"] = date_time
+    analysis_summary.at[index_summary, "t_start"] = row['t_start']
+    analysis_summary.at[index_summary, "t_end"] = row['t_end']
 	
     analysis_summary.to_csv(output_folder + "analysis_summary.csv", index = False)
 
     short_name = str(row["short_name"]) 
-    file_path = data_path + folder_2d_data + short_name + ".tif"
+    file_path = data_path + folder_2d_data + short_name + parameters["file_ext"]
     fish_id = short_name.split("_")[0] + "_" + short_name.split("_")[1] + "_" + short_name.split("_")[3]
 
 
@@ -287,15 +302,21 @@ for index, row in key_file.iterrows():
             #coordinates_2D.at[index,"Y"] = y_cell
             coordinates_2D.at[index,"X"] = y_cell
             coordinates_2D.at[index,"Y"] = x_cell
+            coordinates_2D.at[index,"area_mum2"] = area*row['PixelSizeX']*row['PixelSizeY']
             coordinates_2D.at[index,"dt_min"] = row["dt_min"]
             coordinates_2D.at[index,"time_in_min"] = row["dt_min"]*time
-            coordinates_2D.at[index,"minor_axis_length"] = minor_axis_length
-            coordinates_2D.at[index,"major_axis_length"] = major_axis_length
+            coordinates_2D.at[index,"minor_axis_length_px"] = minor_axis_length
+            coordinates_2D.at[index,"minor_axis_length_mum"] = minor_axis_length*row['PixelSizeX']
+            coordinates_2D.at[index,"major_axis_length_px"] = major_axis_length
+            coordinates_2D.at[index,"major_axis_length_mum"] = major_axis_length*row['PixelSizeX']
             coordinates_2D.at[index,"major_minor_ratio"] = major_axis_length/minor_axis_length
-            coordinates_2D.at[index,"perimeter"] = perimeter
+            coordinates_2D.at[index,"perimeter_px"] = perimeter
+            coordinates_2D.at[index,"perimeter_mum"] = perimeter*row['PixelSizeX']
             coordinates_2D.at[index,"eccentricity"] = eccentricity
             coordinates_2D.at[index,"cancer_cells"] = row["cancer_cells"]
-            
+            coordinates_2D.at[index_summary, "t_start"] = row['t_start']
+            coordinates_2D.at[index_summary, "t_end"] = row['t_end']
+	           
             index +=1
 
         
