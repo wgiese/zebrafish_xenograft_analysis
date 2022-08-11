@@ -105,6 +105,8 @@ if parameters["sample_full_hours"]:
     macrophage_properties = macrophage_properties[macrophage_properties["time_in_min"].isin(obs_time_points)]
     macrophage_count = macrophage_count[macrophage_count["time_in_min"].isin(obs_time_points)]
 
+macrophage_count.to_csv("macrophage_count.csv", index =False)
+
 # plot each fish_id as single line, color code by cancer cell line
 
 fig, (ax1,ax2) = plt.subplots(1,2,figsize=(30,10), gridspec_kw={'width_ratios': [delta_1dpi , delta_5dpi]})
