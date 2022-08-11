@@ -65,6 +65,9 @@ min_macrophage_voxels : 100
 
 # time series analysis
 
+start_time: {'1dpi': 1440, '5dpi' : 6840}
+# time in minutes, note that 24 *60 min = 1440 min, which is exactly 1 day post injection, while for 5dpi it is actually 4 days + 18 h, meaning 6840 min.
+
 macrophage_input_path_1dpi : "/folder/to/cellpose/segmentations/"
 macrophage_input_path_5dpi : "/folder/to/cellpose/segmentations/"
 
