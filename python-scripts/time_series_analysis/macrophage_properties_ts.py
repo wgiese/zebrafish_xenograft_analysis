@@ -81,6 +81,8 @@ print(macrophage_properties_5dpi)
 
 macrophage_properties = pd.concat([macrophage_properties_1dpi,macrophage_properties_5dpi], ignore_index = True)
 
+macrophage_properties.to_csv("macrophage_props_1dpi_and_5dpi.csv", index = False)
+
 # count macrophages per time point and image and store in data frame
 
 macrophage_count = pd.DataFrame()
@@ -100,7 +102,7 @@ for short_name in macrophage_properties["short_name"].unique():
         macrophage_count.at[index, "dpi"] = single_frame["dpi"].iloc[0]
         index +=1
 
-macrophage_count.to_csv("macrophage_count.csv", index = False)
+macrophage_count.to_csv("macrophage_count_1dpi_and_5dpi.csv", index = False)
 
 # prepare axis limits
 
