@@ -314,8 +314,8 @@ for index, row in key_file.iterrows():
             coordinates_2D.at[index,"perimeter_mum"] = perimeter*row['PixelSizeX']
             coordinates_2D.at[index,"eccentricity"] = eccentricity
             coordinates_2D.at[index,"cancer_cells"] = row["cancer_cells"]
-            coordinates_2D.at[index_summary, "t_start"] = row['t_start']
-            coordinates_2D.at[index_summary, "t_end"] = row['t_end']
+            coordinates_2D.at[index, "t_start"] = row['t_start']
+            coordinates_2D.at[index, "t_end"] = row['t_end']
 	           
             index +=1
 

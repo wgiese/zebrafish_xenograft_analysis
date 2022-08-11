@@ -79,6 +79,7 @@ df_wide_example <- read.csv("Data_wide_example_time_single.csv", na.strings = ""
 #df_tidy_example <- read.csv("Data_tidy_example_time_multi.csv")
 #df_tidy_example <- read.csv("macrophage_count_1dpi_and_5dpi.csv")
 df_macrophage_count <- read.csv("macrophage_count_1dpi_and_5dpi.csv")
+df_macrophage_props <- read.csv("macrophage_props_1dpi_and_5dpi.csv")
 df_tumor_volumes_1dpi <- read.csv("tumor_volumes_1dpi.csv")
 df_tumor_volumes_5dpi <- read.csv("tumor_volumes_5dpi.csv")
 df_tumor_volumes <- rbind(df_tumor_volumes_1dpi, df_tumor_volumes_5dpi)
@@ -199,14 +200,15 @@ ui <- fluidPage(
                      choices = 
                        list("Tumor volumes" = 1,
                             "Macrophage counts" = 2,
-                            "Upload (multiple) file(s)" = 3,
-                            "Paste data" = 4,
-                            "URL (csv files only)" = 5)
+                            "Single macrophage properties" = 3,
+                            "Upload (multiple) file(s)" = 4,
+                            "Paste data" = 5,
+                            "URL (csv files only)" = 6)
                      ,
                      selected =  1),
                    
                    conditionalPanel(
-                     condition = "input.data_input=='3'",
+                     condition = "input.data_input=='4'",
                      h5(""),
                      fileInput("upload", "Each file is a group:", multiple = TRUE),
                      selectInput("file_type", "Type of file:",
@@ -217,7 +219,7 @@ ui <- fluidPage(
                      ),
                    
                    conditionalPanel(
-                     condition = "input.data_input=='4'",
+                     condition = "input.data_input=='5'",
                      h5("Paste data below:"),
                      tags$textarea(id = "data_paste",
                                    placeholder = "Add data here",
@@ -236,7 +238,7 @@ ui <- fluidPage(
                    
                    ### csv via URL as input      
                    conditionalPanel(
-                     condition = "input.data_input=='5'",
+                     condition = "input.data_input=='6'",
                      #         textInput("URL", "URL", value = "https://zenodo.org/record/2545922/files/FRET-efficiency_mTq2.csv"), 
                      textInput("URL", "URL", value = ""), 
                      NULL
