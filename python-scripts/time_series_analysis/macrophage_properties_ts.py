@@ -37,6 +37,10 @@ summary_key_file_1dpi = pd.read_csv(macrophages_path_1dpi + 'analysis_summary.cs
 macrophages_path_5dpi = parameters["macrophage_input_path_5dpi"]
 summary_key_file_5dpi = pd.read_csv(macrophages_path_5dpi + 'analysis_summary.csv')
 
+start_time_points = parameters["start_time"]
+end_time_points = parameters["end_time"]
+
+
 # read macrophage properties from segmentation results 
 
 def get_macrophage_properties_df(summary_key_file, macrophages_path):
@@ -49,6 +53,11 @@ def get_macrophage_properties_df(summary_key_file, macrophages_path):
             single_movie_props = pd.read_csv(macrophages_path + single_movie_fn, sep=";")
         else:
             continue
+        # TODO: extract observed time only
+        single_movie_props = single_movie_props[single_movie_props['time_point']<= row['t_end']]
+        single_movie_props = single_movie_props[single_movie_props['time_point']>= row['t_start']]
+
+
         if macrophage_props.shape[0]>1:
             macrophage_props = pd.concat([macrophage_props, single_movie_props], ignore_index = True)
         else:
@@ -59,10 +68,10 @@ def get_macrophage_properties_df(summary_key_file, macrophages_path):
 
 def time_frame_to_min(macrophage_properties_,dpi):
     
-    start_time_points = parameters["start_time"]
     dt_min = macrophage_properties_["dt_min"].iloc[0]
     macrophage_properties = macrophage_properties_.copy()
-    
+    macrophage_properties["circularity"] = 4.0*macrophage_properties["Area"]/(np.pi*macrophage_properties["perimeter_px"]) 
+   
     macrophage_properties["time_in_min"] = macrophage_properties["time_point"]*dt_min + start_time_points[dpi]
     macrophage_properties["time_in_h"] = macrophage_properties["time_in_min"]/60.0
     macrophage_properties["dpi"] = dpi
@@ -78,8 +87,53 @@ macrophage_properties_5dpi = get_macrophage_properties_df(summary_key_file_5dpi,
 macrophage_properties_5dpi = time_frame_to_min(macrophage_properties_5dpi, dpi='5dpi')
 print(macrophage_properties_5dpi) 
 
+# TODO: save 1dpi and 5dpi with all time points
+macrophage_properties_1dpi.to_csv("macrophage_props_1dpi.csv", index = False)
+
+macrophage_properties_5dpi.to_csv("macrophage_props_5dpi.csv", index = False)
 
 macrophage_properties = pd.concat([macrophage_properties_1dpi,macrophage_properties_5dpi], ignore_index = True)
+
+# TODO: transform to hourly
+start_1dpi = start_time_points['1dpi']
+end_5dpi = end_time_points['5dpi']
+obs_time_points = np.arange(start_1dpi,end_5dpi,60)
+macrophage_properties = macrophage_properties[macrophage_properties["time_in_min"].isin(obs_time_points)]
+
+
+print("Data types in macrophage properties data frame:")
+print(macrophage_properties.dtypes)
+
+new_types = {   'short_name' : 'object', 
+                'fish_id' : 'object',
+                'time_point' : 'int16',
+                'number' : 'int16',
+                'Area' : 'int16', 
+                'Mean' : 'float16',
+                'Min' : 'int16',
+                'Max'  : 'int16',
+                'X' : 'float16',
+                'Y' : 'float16',
+                'area_mum2' : 'float16',
+                'dt_min' : 'float16',
+                'time_in_min' : 'float16',
+                'minor_axis_length_px' : 'float16',
+                'minor_axis_length_mum' : 'float16',
+                'major_axis_length_px' : 'float16',
+                'major_axis_length_mum' : 'float16',
+                'major_minor_ratio' : 'float16',
+                'perimeter_px' : 'float16',
+                'perimeter_mum' : 'float16',
+                'eccentricity' : 'float16',
+                'cancer_cells' : 'object',
+                't_start' : 'int16',
+                't_end' : 'int16',
+                'time_in_h' : 'float16',
+                'dpi' : 'object' }
+
+macrophage_properties = macrophage_properties.astype(new_types)
+print("New data types in macrophage properties data frame (reduce space):")
+print(macrophage_properties.dtypes)
 
 macrophage_properties.to_csv("macrophage_props_1dpi_and_5dpi.csv", index = False)
 
@@ -98,6 +152,7 @@ for short_name in macrophage_properties["short_name"].unique():
         macrophage_count.at[index, "time_point"] = time_point
         macrophage_count.at[index, "macrophage_count"] = len(single_frame["number"])
         macrophage_count.at[index, "time_in_min"] = single_frame["time_in_min"].iloc[0]
+        macrophage_count.at[index, "time_in_h"] = single_frame["time_in_h"].iloc[0]
         macrophage_count.at[index, "cancer_cells"] = single_frame["cancer_cells"].iloc[0]
         macrophage_count.at[index, "dpi"] = single_frame["dpi"].iloc[0]
         index +=1

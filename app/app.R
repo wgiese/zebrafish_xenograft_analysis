@@ -543,11 +543,15 @@ df_upload <- reactive({
 
     }  else if (input$data_input == 2) {
 #      
-      df_macrophage_count["time_in_h"] <- df_macrophage_count["time_in_min"]/60.0
+      #df_macrophage_count["time_in_h"] <- df_macrophage_count["time_in_min"]/60.0
       #updateSelectInput(session, "tidyInput", selected = TRUE)
       data <- df_macrophage_count
 
     } else if (input$data_input == 3) {
+        
+      data <- df_macrophage_props
+
+    } else if (input$data_input == 4) {
       if (is.null(input$upload)) {
         return(data.frame(x = "Select your datafile", Time=1,Cell=1, id=1))
       } else {
