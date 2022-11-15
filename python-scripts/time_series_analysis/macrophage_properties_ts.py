@@ -54,8 +54,9 @@ def get_macrophage_properties_df(summary_key_file, macrophages_path):
         else:
             continue
         # TODO: extract observed time only
-        single_movie_props = single_movie_props[single_movie_props['time_point']<= row['t_end']]
-        single_movie_props = single_movie_props[single_movie_props['time_point']>= row['t_start']]
+        # note that key file entries t_end and t_start are assuming numbering of time frames from 1
+        single_movie_props = single_movie_props[single_movie_props['time_point']<= row['t_end']-1]
+        single_movie_props = single_movie_props[single_movie_props['time_point']>= row['t_start']-1]
 
 
         if macrophage_props.shape[0]>1:
@@ -98,6 +99,11 @@ macrophage_properties = pd.concat([macrophage_properties_1dpi,macrophage_propert
 start_1dpi = start_time_points['1dpi']
 end_5dpi = end_time_points['5dpi']
 obs_time_points = np.arange(start_1dpi,end_5dpi,60)
+print("Target observation time points:")
+print(obs_time_points)
+print("Time points in the data set:")
+print(macrophage_properties["time_in_min"].unique())
+
 macrophage_properties = macrophage_properties[macrophage_properties["time_in_min"].isin(obs_time_points)]
 
 
@@ -161,19 +167,20 @@ macrophage_count.to_csv("macrophage_count_1dpi_and_5dpi.csv", index = False)
 
 # prepare axis limits
 
-start_1dpi = 1.0*60.0*24.0 
-end_1dpi = start_1dpi + 15.0*60.0 
+start_1dpi = int(start_time_points['1dpi'])
+end_1dpi = int(end_time_points['1dpi'])
 delta_1dpi = end_1dpi - start_1dpi
 
-start_5dpi = 5.0*60.0*24.0
-end_5dpi = start_5dpi + 6.0*60.0
+start_5dpi = int(start_time_points['5dpi'])
+end_5dpi = int(end_time_points['5dpi'])
 delta_5dpi = end_5dpi - start_5dpi
 
 ratio = delta_5dpi/delta_1dpi
 
 max_count = macrophage_count["macrophage_count"].max()
 
-obs_time_points = np.arange(start_1dpi,end_5dpi,60)
+
+
 
 if parameters["sample_full_hours"]:
     macrophage_properties = macrophage_properties[macrophage_properties["time_in_min"].isin(obs_time_points)]
