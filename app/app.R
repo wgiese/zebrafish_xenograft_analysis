@@ -97,7 +97,7 @@ ui <- fluidPage(
                  conditionalPanel(
                    condition = "input.tabs=='Plot'",
                    h4("Data"),
-                   radioButtons("data_form", "Data as:", choices = list("Lines" = "dataasline", "Dots" = "dataasdot", "Heatmap" = "dataaspixel"), selected = "dataasline"),
+                   radioButtons("data_form", "Data as:", choices = list("None" = "no_data", "Lines" = "dataasline", "Dots" = "dataasdot", "Heatmap" = "dataaspixel"), selected = "no_data"),
 
                    conditionalPanel(condition = "input.data_form != 'dataaspixel'",
                                     
@@ -109,9 +109,9 @@ ui <- fluidPage(
                              h4("Statistics"),
                              sliderInput("alphaInput_summ", "Visibility of the statistics", 0, 1, 1),              
           
-                             checkboxInput("summaryInput", "Show the mean", value=FALSE),
+                             checkboxInput("summaryInput", "Show the mean", value=TRUE),
                              #        sliderInput("Input_CI", "Confidence Level", 90, 100, 95),
-                             checkboxInput(inputId = "add_CI", label = HTML("Show the 95% CI"), value = FALSE),
+                             checkboxInput(inputId = "add_CI", label = HTML("Show the 95% CI"), value = TRUE),
                              NULL
                    ),
 
@@ -153,8 +153,8 @@ ui <- fluidPage(
                             checkboxInput(inputId = "no_grid",
                                           label = "Remove gridlines",
                                           value = FALSE),
-                            checkboxInput("color_data", "Use color for the data", value=FALSE),
-                            checkboxInput("color_stats", "Use color for the stats", value=FALSE),
+                            checkboxInput("color_data", "Use color for the data", value=TRUE),
+                            checkboxInput("color_stats", "Use color for the stats", value=TRUE),
                             #                  selectInput("colour_list", "Colour:", choices = ""),
                             conditionalPanel(condition = "input.color_data == true || input.color_stats == true",
                                              radioButtons("adjustcolors", "Color palette:", choices = 
@@ -1453,7 +1453,7 @@ plot_data <- reactive({
     
         }
         myplots <- lapply(1:2, plotseries)
-        res <- grid.arrange(grobs = myplots, ncol = 2, widths = c(17,5))
+        res <- grid.arrange(grobs = myplots, ncol = 2, widths = c(15,6))
 
     }
     else {

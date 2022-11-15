@@ -180,9 +180,15 @@ plot_time_series <- function(input, klass, koos, plot_nr) {
       
     }
     
-    
-    
-    
+    #set xticks
+    if (plot_nr == 1) {
+        p <- p + scale_x_continuous(limits = c(24, 40), breaks = (c(24, 26, 28, 30, 32, 34, 36, 38, 40)))
+    }
+    else {
+    	p <- p + scale_x_continuous(limits = c(114, 119), breaks = (c(114,  116, 118, 119)))
+    	p <- p + labs(x = "", y = "")
+    	#p <- p + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+    }
     
     # This needs to go here (before annotations)
     p <- p+ theme_light(base_size = 16)
