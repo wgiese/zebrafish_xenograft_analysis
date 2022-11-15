@@ -1,4 +1,4 @@
-plot_time_series <- function(input, klass, koos, plot_nr) {
+plot_time_series <- function(input, klass, koos, plot_nr, max_y_value) {
 
       
     # Change linecolor in case of dark mode
@@ -183,10 +183,13 @@ plot_time_series <- function(input, klass, koos, plot_nr) {
     #set xticks
     if (plot_nr == 1) {
         p <- p + scale_x_continuous(limits = c(24, 40), breaks = (c(24, 26, 28, 30, 32, 34, 36, 38, 40)))
+        #p <- p + scale_y_continuous(limits = c(0, max_y_value))
     }
     else {
     	p <- p + scale_x_continuous(limits = c(114, 119), breaks = (c(114,  116, 118, 119)))
+    	
     	p <- p + labs(x = "", y = "")
+    	#p <- p + scale_y_continuous(limits = c(0, max_y_value))
     	#p <- p + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
     }
     
@@ -215,8 +218,10 @@ plot_time_series <- function(input, klass, koos, plot_nr) {
       
       #Read out the current range, this is necessary for annotation of stimulus
       rng_y <- c(NULL,NULL)
-      upper_y <- ggplot_build(p)$layout$panel_scales_y[[1]]$range$range[2]
-      lower_y <- ggplot_build(p)$layout$panel_scales_y[[1]]$range$range[1]
+      #upper_y <- ggplot_build(p)$layout$panel_scales_y[[1]]$range$range[2]
+      #lower_y <- ggplot_build(p)$layout$panel_scales_y[[1]]$range$range[1]
+      upper_y <- max_y_value
+      lower_y <- 0
       
     }
     range_y <- upper_y-lower_y
@@ -242,7 +247,7 @@ plot_time_series <- function(input, klass, koos, plot_nr) {
     if (input$indicate_stim == TRUE) {
       
       p <- p  +  theme(plot.margin = unit(c(3,1,1,1), "lines"))
-      p <- p + coord_cartesian(xlim=c(rng_x[1],rng_x[2]),ylim=c(lower_y,upper_y),clip = 'off')
+      p <- p + coord_cartesian(xlim=c(rng_x[1],rng_x[2]),ylim=c(lower_y,upper_y), clip = 'off', expand = FALSE)
       
       #If only one number is entered, a vertical line is added
       if (length(rang) ==1) {
@@ -277,7 +282,7 @@ plot_time_series <- function(input, klass, koos, plot_nr) {
         
       }
     } else {
-      p <- p + coord_cartesian(xlim=c(rng_x[1],rng_x[2]),ylim=c(lower_y,upper_y))
+      p <- p + coord_cartesian(xlim=c(rng_x[1],rng_x[2]),ylim=c(lower_y,upper_y),  expand = FALSE)
     }
     
 

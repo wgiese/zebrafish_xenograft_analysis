@@ -1445,11 +1445,16 @@ plot_data <- reactive({
     klaas <- df_binned() 
     koos <- df_summary_mean()
 
+    print("Column names of data mean")
+    print(colnames(koos))
+    
     res <- ggplot()
     if (input$add_2nd_scale) {
+      
+        max_y_value = max(koos$ci_hi)*1.1
         plotseries <- function(i){     
     
-            p <- plot_time_series(input, klass, koos, i)
+            p <- plot_time_series(input, klass, koos, i, max_y_value)
     
         }
         myplots <- lapply(1:2, plotseries)
