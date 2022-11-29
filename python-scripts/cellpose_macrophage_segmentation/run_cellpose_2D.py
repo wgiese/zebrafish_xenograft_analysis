@@ -339,14 +339,24 @@ for index, row in key_file.iterrows():
         if parameters["plot_eccentricity"]:
             fig, ax = plt.subplots(figsize=(15,15))
             ax.imshow(macrophage_img, cm.binary)
-            print("Max eccentricity: ", np.max(cell_eccentricity_mask))
-            ax.imshow(np.ma.masked_where(masks == 0, cell_eccentricity_mask), cmap=plt.cm.bwr, vmin=0.0, vmax=1.0, alpha = 0.5)
+            #print("Max eccentricity: ", np.max(cell_eccentricity_mask))
+            cax = ax.imshow(np.ma.masked_where(masks == 0, cell_eccentricity_mask), cmap=plt.cm.bwr, vmin=0.0, vmax=1.0, alpha = 0.5)
+            color_bar = fig.colorbar(cax, ax=ax, shrink=0.3)
+            color_bar.set_label("eccentricity")
+            propereties_ = coordinates_2D[coordinates_2D['time_point'] == time]
+            for k, row_prop in propereties_.iterrows():
+                ax.text( row_prop['X'], row_prop['Y'], str(np.round(row_prop["eccentricity"],2)), color = "black", fontsize=10)
             plt.savefig(output_folder + short_name + "-%s-cell_eccentricity.png" % time)
             plt.close()
         if parameters["plot_circularity"]:
             fig, ax = plt.subplots(figsize=(15,15))
             ax.imshow(macrophage_img, cm.binary)
-            ax.imshow(np.ma.masked_where(masks == 0, cell_circularity_mask), cmap=plt.cm.bwr, vmin=0.0, vmax=1.0, alpha = 0.5)
+            cax = ax.imshow(np.ma.masked_where(masks == 0, cell_circularity_mask), cmap=plt.cm.bwr, vmin=0.0, vmax=1.0, alpha = 0.5)
+            color_bar = fig.colorbar(cax, ax=ax, shrink=0.3)
+            color_bar.set_label("circularity")
+            propereties_ = coordinates_2D[coordinates_2D['time_point'] == time]
+            for k, row_prop in propereties_.iterrows():
+                ax.text( row_prop['X'], row_prop['Y'], str(np.round(row_prop["circularity"],2)), color = "black", fontsize=10)
             plt.savefig(output_folder + short_name + "-%s-cell_circularity.png" % time)
             plt.close()
 
