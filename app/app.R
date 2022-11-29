@@ -258,8 +258,17 @@ ui <- fluidPage(
                       selectInput("y_var", "Select variable for y-axis", choices = ""),
                       selectInput("g_var", "Identifier of samples", choices = ""),
                       selectInput("c_var", "Identifier of conditions", choices = ""),
-                      selectInput("filter_column", "Filter based on this parameter:", choices = ""),
+                      selectInput("filter_column", "Filter based on this categorial parameter:", choices = ""),
                       selectInput("remove_these_conditions", "Deselect these conditions:", "", multiple = TRUE),
+                   
+                   
+                    checkboxInput("filter_data", "Filter data by numeric ranges of features", FALSE),
+                    conditionalPanel(
+                      condition = "input.filter_data == true",
+                      selectInput("feature_filter_column", "Filter based on this numeric feature:", choices = ""),
+                      numericInput("max_value", "Set maximum value:", value = 1.0),
+                      numericInput("min_value", "Set minimum value:", value = 0.0)
+                    ),
                       
 
                     #),
@@ -678,6 +687,11 @@ df_filtered <- reactive({
     
     } else {df <- df_upload()}
   
+    if ( (input$filter_data == TRUE) && (input$feature_filter_column != "none")) {
+      df <- df[df[input$feature_filter_column] > input$min_value, ]
+      df <- df[df[input$feature_filter_column] < input$max_value, ]
+    }
+  
   #Replace space and dot of header names by underscore
   df <- df %>%  
     select_all(~gsub("\\s+|\\.", "_", .))
@@ -732,6 +746,7 @@ observe({
   updateSelectInput(session, "c_var", choices = var_list, selected="cancer_cells")
   updateSelectInput(session, "g_var", choices = var_list, selected="fish_id")
   updateSelectInput(session, "filter_column", choices = var_list, selected="none")
+  updateSelectInput(session, "feature_filter_column", choices = var_list, selected="none")
 
 
 })
