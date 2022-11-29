@@ -235,6 +235,8 @@ for index, row in key_file.iterrows():
             else:
                 print("Annotation can not be loaded, file does not exist.")
          
+        cell_eccentricity_mask = np.zeros((macrophage_img.shape[0], macrophage_img.shape[1]))
+        cell_circularity_mask = np.zeros((macrophage_img.shape[0], macrophage_img.shape[1]))
 
         for mask_id in np.unique(masks):
     
@@ -258,8 +260,7 @@ for index, row in key_file.iterrows():
                     area = props.area
                     perimeter = props.perimeter
                 
-            
-            
+           
             
                 x0 = x_cell
                 y0 = y_cell
@@ -279,6 +280,7 @@ for index, row in key_file.iterrows():
             
                 ax.text( y_cell,x_cell, str(mask_id), color = "red", fontsize=20)
 
+            
 
         #for label in range(1,np.max(masks)-1):
             #single_cell_mask = np.where(masks == label, 1, 0)
@@ -295,6 +297,9 @@ for index, row in key_file.iterrows():
                 area = props.area
                 perimeter = props.perimeter  
 
+            cell_eccentricity_mask += single_cell_mask * eccentricity
+            cell_circularity_mask += single_cell_mask * 4.0*np.pi*area/(perimeter*perimeter)
+ 
             coordinates_2D.at[index,"short_name"] = short_name
             coordinates_2D.at[index,"fish_id"] = fish_id
             coordinates_2D.at[index,"time_point"] = time
@@ -330,6 +335,22 @@ for index, row in key_file.iterrows():
             plt.savefig(output_folder + short_name + "-%s-cell_properties.png" % time)
         coordinates_2D.to_csv(output_folder + short_name + ".csv", sep=";", index = False)
         plt.close()
+
+        if parameters["plot_eccentricity"]:
+            fig, ax = plt.subplots(figsize=(15,15))
+            ax.imshow(macrophage_img, cm.binary)
+            print("Max eccentricity: ", np.max(cell_eccentricity_mask))
+            ax.imshow(np.ma.masked_where(masks == 0, cell_eccentricity_mask), cmap=plt.cm.bwr, vmin=0.0, vmax=1.0, alpha = 0.5)
+            plt.savefig(output_folder + short_name + "-%s-cell_eccentricity.png" % time)
+            plt.close()
+        if parameters["plot_circularity"]:
+            fig, ax = plt.subplots(figsize=(15,15))
+            ax.imshow(macrophage_img, cm.binary)
+            ax.imshow(np.ma.masked_where(masks == 0, cell_circularity_mask), cmap=plt.cm.bwr, vmin=0.0, vmax=1.0, alpha = 0.5)
+            plt.savefig(output_folder + short_name + "-%s-cell_circularity.png" % time)
+            plt.close()
+
+        
 
     analysis_summary.at[index_summary, "properties_saved"] = "yes"
     analysis_summary.to_csv(output_folder + "analysis_summary.csv", index = False)

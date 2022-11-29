@@ -52,6 +52,8 @@ filter_experiments: "none" # options: "none" or "annotated"
 export_masks : npy # or vtk or none
 resume: False
 plot_properties : False
+plot_eccentricity : True
+plot_circularity : True
 flow_threshold : 0.4 # cellpose default is 0.4
 cellprob_threshold: 0.0  # cellpose default is 0.0 , TODO: unused at the moment
 
