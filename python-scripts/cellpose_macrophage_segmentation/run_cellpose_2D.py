@@ -21,7 +21,7 @@ sys.path.insert(0,"../")
 import functions_common
 import datetime
 import argparse
-
+import yaml
 
 ### read parameters
 
@@ -39,6 +39,7 @@ parameter_file  = args.param
 parameters = functions_common.read_parameters(base_params = "../base/parameters.yml", local_params = parameter_file)
 print("#"*5,"parameters","#"*5)
 print(parameters)
+
 key_file = functions_common.read_key_file(parameters)
 print("#"*5,"key_file","#"*5)
 print(key_file.head())
@@ -58,6 +59,10 @@ data_path = parameters["data_folder"]
 folder_2d_data = parameters['image_file_path_2D']#"/03_Preprocessed_Data/01_2D/"
 use_gpu = parameters["use_gpu"]
 output_folder = parameters["cp_output_path"]
+
+with open(output_folder + "/parameters.yml", 'w') as outfile:
+    yaml.dump(parameters, outfile)
+
 
 # filter key file
 if (not isinstance(injection_time_dpi, list)): 
