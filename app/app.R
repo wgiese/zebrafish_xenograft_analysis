@@ -78,8 +78,11 @@ Okabe_Ito <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00",
 df_wide_example <- read.csv("Data_wide_example_time_single.csv", na.strings = "")
 #df_tidy_example <- read.csv("Data_tidy_example_time_multi.csv")
 #df_tidy_example <- read.csv("macrophage_count_1dpi_and_5dpi.csv")
-df_macrophage_count <- read.csv("macrophage_count_1dpi_and_5dpi.csv")
+#df_macrophage_count <- read.csv("macrophage_count_1dpi_and_5dpi.csv")
 df_macrophage_props <- read.csv("macrophage_props_1dpi_and_5dpi.csv")
+
+df_macrophage_count  <- df_macrophage_props %>% group_by(short_name, time_point) %>% summarize(fish_id = fish_id[1], cancer_cells = cancer_cells[1],  time_in_h = min(time_in_h), dpi = dpi[1], macrophage_count = n(), mean_area = mean(Area, na.rm = TRUE))
+
 df_tumor_volumes_1dpi <- read.csv("tumor_volumes_1dpi.csv")
 df_tumor_volumes_5dpi <- read.csv("tumor_volumes_5dpi.csv")
 df_tumor_volumes <- rbind(df_tumor_volumes_1dpi, df_tumor_volumes_5dpi)
@@ -554,7 +557,8 @@ df_upload <- reactive({
 #      
       #df_macrophage_count["time_in_h"] <- df_macrophage_count["time_in_min"]/60.0
       #updateSelectInput(session, "tidyInput", selected = TRUE)
-      data <- df_macrophage_count
+      #data <- df_macrophage_count
+      data <- df_macrophage_props
 
     } else if (input$data_input == 3) {
         
@@ -696,7 +700,10 @@ df_filtered <- reactive({
   df <- df %>%  
     select_all(~gsub("\\s+|\\.", "_", .))
   
-  
+  if (input$data_input == 2) {
+    df  <- df %>% group_by(short_name, time_point) %>% summarize(fish_id = fish_id[1], cancer_cells = cancer_cells[1],  time_in_h = min(time_in_h), dpi = dpi[1], macrophage_count = n(), mean_area = mean(Area, na.rm = TRUE))
+  }
+  df
 })
 
 
@@ -735,6 +742,17 @@ observe({
 #  var_names  <- names(df_upload_tidy())
   var_names  <- names(df_upload())
   var_list <- c("none", var_names)
+  
+  updateSelectInput(session, "feature_filter_column", choices = var_list, selected="none")
+  
+  if (input$data_input == 2) {
+    df <- df_upload()
+    df  <- df %>% group_by(short_name, time_point) %>% summarize(fish_id = fish_id[1], cancer_cells = cancer_cells[1],  time_in_h = min(time_in_h), dpi = dpi[1], macrophage_count = n(), mean_area = mean(Area, na.rm = TRUE))
+    var_names  <- names(df)
+    var_list <- c("none", var_names)
+  }
+  
+  
   #        updateSelectInput(session, "colour_list", choices = var_list)
   #updateSelectInput(session, "y_var", choices = var_list, selected="Value")
   #updateSelectInput(session, "x_var", choices = var_list, selected="Time")
@@ -746,7 +764,7 @@ observe({
   updateSelectInput(session, "c_var", choices = var_list, selected="cancer_cells")
   updateSelectInput(session, "g_var", choices = var_list, selected="fish_id")
   updateSelectInput(session, "filter_column", choices = var_list, selected="none")
-  updateSelectInput(session, "feature_filter_column", choices = var_list, selected="none")
+  
 
 
 })
