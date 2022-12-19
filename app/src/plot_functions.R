@@ -82,10 +82,36 @@ plot_time_series <- function(input, klass, koos, plot_nr, max_y_value) {
  
     }
     
+    #print("Before sorting")
+    #print("Conditions lines")
+    #print(unique(klaas$id))
+    #print("Conditions stats")
+    #print(unique(koos$id))
+    #print("After sorting")
+  
+    klaas <- klaas[order(klaas$id),]
+    koos <- koos[order(koos$id),]
+  
+    #print("Conditions lines")
+    #print(unique(klaas$id))
+    #print("Conditions stats")
+    #print(unique(koos$id))
     
     #Define how colors are used
     klaas <- klaas %>% mutate(id = as.factor(id), unique_id = as.character(unique_id))
     koos <- koos %>% mutate(id = as.factor(id))
+    
+    klaas <- klaas[order(klaas$unique_id, klaas$id),]
+    klaas$id <- factor( klaas$id, levels = unique(koos$id))
+    koos <- koos[order(koos$id),]
+    
+    print("Ordering of conditions and levels")
+    print("Conditions lines")
+    print(unique(klaas$id))
+    print("Conditions stats")
+    print(unique(koos$id))
+    
+    
     
     number_of_conditions <- nlevels(as.factor(klaas$id))
     if (number_of_conditions == 1) {
@@ -103,7 +129,6 @@ plot_time_series <- function(input, klass, koos, plot_nr, max_y_value) {
     } else {
       fnt_sz_stim <- input$fnt_sz_stim
     }
-    
     
     newColors <- NULL
     
