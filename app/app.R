@@ -83,8 +83,8 @@ df_macrophage_props <- read.csv("macrophage_props_1dpi_and_5dpi.csv")
 
 df_macrophage_count  <- df_macrophage_props %>% group_by(short_name, time_point) %>% summarize(fish_id = fish_id[1], cancer_cells = cancer_cells[1],  time_in_h = min(time_in_h), dpi = dpi[1], macrophage_count = n(), mean_area = mean(Area, na.rm = TRUE))
 
-df_tumor_volumes_1dpi <- read.csv("tumor_volumes_1dpi.csv")
-df_tumor_volumes_5dpi <- read.csv("tumor_volumes_5dpi.csv")
+df_tumor_volumes_1dpi <- read.csv("tumor_volumes_and_distances_1dpi.csv")
+df_tumor_volumes_5dpi <- read.csv("tumor_volumes_and_distances_5dpi.csv")
 df_tumor_volumes <- rbind(df_tumor_volumes_1dpi, df_tumor_volumes_5dpi)
 
 
@@ -763,7 +763,7 @@ observe({
   updateSelectInput(session, "x_var", choices = var_list, selected="time_in_h")
   updateSelectInput(session, "c_var", choices = var_list, selected="cancer_cells")
   updateSelectInput(session, "g_var", choices = var_list, selected="fish_id")
-  updateSelectInput(session, "filter_column", choices = var_list, selected="none")
+  updateSelectInput(session, "filter_column", choices = var_list, selected="cancer_cells")
   
 
 
