@@ -113,6 +113,11 @@ ui <- fluidPage(
                              sliderInput("alphaInput_summ", "Visibility of the statistics", 0, 1, 1),              
           
                              checkboxInput("summaryInput", "Show the mean", value=TRUE),
+                             conditionalPanel(condition = "input.summaryInput  = 'true'",
+                                sliderInput("min_nr_sample", "Minimum sample number for statistics", 0, 10, 3),
+                                NULL              
+                             ),
+
                              #        sliderInput("Input_CI", "Confidence Level", 90, 100, 95),
                              checkboxInput(inputId = "add_CI", label = HTML("Show the 95% CI"), value = TRUE),
                              NULL
