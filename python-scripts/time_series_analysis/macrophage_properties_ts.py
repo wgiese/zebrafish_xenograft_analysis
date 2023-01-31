@@ -104,6 +104,8 @@ print(obs_time_points)
 print("Time points in the data set:")
 print(macrophage_properties["time_in_min"].unique())
 
+
+
 macrophage_properties = macrophage_properties[macrophage_properties["time_in_min"].isin(obs_time_points)]
 
 
@@ -131,6 +133,7 @@ new_types = {   'short_name' : 'object',
                 'perimeter_px' : 'float16',
                 'perimeter_mum' : 'float16',
                 'eccentricity' : 'float16',
+                'circularity' : 'float16',
                 'cancer_cells' : 'object',
                 't_start' : 'int16',
                 't_end' : 'int16',
