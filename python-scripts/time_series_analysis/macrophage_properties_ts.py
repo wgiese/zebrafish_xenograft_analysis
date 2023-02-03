@@ -69,11 +69,11 @@ def get_macrophage_properties_df(summary_key_file, macrophages_path):
 
 def time_frame_to_min(macrophage_properties_,dpi):
     
-    dt_min = macrophage_properties_["dt_min"].iloc[0]
+    #dt_min = macrophage_properties_["dt_min"].iloc[0]
     macrophage_properties = macrophage_properties_.copy()
     # macrophage_properties["circularity"] = 4.0*macrophage_properties["Area"]/(np.pi*macrophage_properties["perimeter_px"]) 
    
-    macrophage_properties["time_in_min"] = macrophage_properties["time_point"]*dt_min + start_time_points[dpi]
+    macrophage_properties["time_in_min"] = macrophage_properties["time_point"]*macrophage_properties_["dt_min"] + start_time_points[dpi]
     macrophage_properties["time_in_h"] = macrophage_properties["time_in_min"]/60.0
     macrophage_properties["dpi"] = dpi
 
