@@ -69,11 +69,11 @@ def get_macrophage_properties_df(summary_key_file, macrophages_path):
 
 def time_frame_to_min(macrophage_properties_,dpi):
     
-    dt_min = macrophage_properties_["dt_min"].iloc[0]
+    #dt_min = macrophage_properties_["dt_min"].iloc[0]
     macrophage_properties = macrophage_properties_.copy()
     # macrophage_properties["circularity"] = 4.0*macrophage_properties["Area"]/(np.pi*macrophage_properties["perimeter_px"]) 
    
-    macrophage_properties["time_in_min"] = macrophage_properties["time_point"]*dt_min + start_time_points[dpi]
+    macrophage_properties["time_in_min"] = macrophage_properties["time_point"]*macrophage_properties_["dt_min"] + start_time_points[dpi]
     macrophage_properties["time_in_h"] = macrophage_properties["time_in_min"]/60.0
     macrophage_properties["dpi"] = dpi
 
@@ -104,6 +104,8 @@ print(obs_time_points)
 print("Time points in the data set:")
 print(macrophage_properties["time_in_min"].unique())
 
+
+
 macrophage_properties = macrophage_properties[macrophage_properties["time_in_min"].isin(obs_time_points)]
 
 
@@ -131,6 +133,7 @@ new_types = {   'short_name' : 'object',
                 'perimeter_px' : 'float16',
                 'perimeter_mum' : 'float16',
                 'eccentricity' : 'float16',
+                'circularity' : 'float16',
                 'cancer_cells' : 'object',
                 't_start' : 'int16',
                 't_end' : 'int16',
