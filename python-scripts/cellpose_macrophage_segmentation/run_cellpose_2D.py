@@ -59,6 +59,7 @@ data_path = parameters["data_folder"]
 folder_2d_data = parameters['image_file_path_2D']#"/03_Preprocessed_Data/01_2D/"
 use_gpu = parameters["use_gpu"]
 output_folder = parameters["cp_output_path"]
+manual_segmentations_folder = parameters["manual_segmentations_folder"]
 
 with open(output_folder + "/parameters.yml", 'w') as outfile:
     yaml.dump(parameters, outfile)
@@ -148,16 +149,24 @@ for index, row in key_file.iterrows():
         macrophage_img = img[time,:,:,parameters["channel_macrophages"]]
     
         channels = [0,0]
+        manual_seg_file_path = manual_segmentations_folder + short_name + str(parameters["file_ext"]).split(".")[0] + "-slice" + str(time + 1) + "_seg.npy"
+        print("Trying to load manual segmentation from: " + manual_seg_file_path)
 
-        if parameters["cp_model_path"] == "None":
-            model = models.Cellpose(gpu=use_gpu, model_type='cyto')
+        if os.path.isfile(manual_seg_file_path):
+            print("Found manual segmentation!")
+            manual_masks = np.load(manual_seg_file_path, allow_pickle=True)
+            masks = manual_masks.item().get("masks")
         else:
-            model = models.CellposeModel(gpu=use_gpu, pretrained_model = parameters["cp_model_path"]) 
+            if parameters["cp_model_path"] == "None":
+                model = models.Cellpose(gpu=use_gpu, model_type='cyto')
+            else:
+                model = models.CellposeModel(gpu=use_gpu, pretrained_model = parameters["cp_model_path"])
         
-        if parameters["diameter"] == "None":
-            masks, flows, styles = model.eval(macrophage_img, diameter=None, channels=channels)
-        else:
-            masks, flows, styles = model.eval(macrophage_img, diameter=parameters["diameter"], channels=channels, flow_threshold = parameters["flow_threshold"])
+            if parameters["diameter"] == "None":
+                masks, flows, styles = model.eval(macrophage_img, diameter=None, channels=channels)
+            else:
+                masks, flows, styles = model.eval(macrophage_img, diameter=parameters["diameter"], channels=channels, flow_threshold = parameters["flow_threshold"])
+
 
 
         masks = skimage.segmentation.clear_border(masks)
