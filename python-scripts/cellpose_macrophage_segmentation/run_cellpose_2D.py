@@ -125,7 +125,12 @@ for index, row in key_file.iterrows():
 
     short_name = str(row["short_name"]) 
     file_path = data_path + folder_2d_data + short_name + parameters["file_ext"]
-    fish_id = short_name.split("_")[0] + "_" + short_name.split("_")[1] + "_" + short_name.split("_")[3]
+    #fish_id = short_name.split("_")[0] + "_" + short_name.split("_")[1] + "_" + short_name.split("_")[3]
+    if "1dpi" in short_name:
+        fish_id = short_name.split("1dpi_")[0] + short_name.split("1dpi_")[1]
+    else:
+        fish_id = short_name.split("5dpi_")[0] + short_name.split("5dpi_")[1]
+
 
 
     if not os.path.exists(file_path):

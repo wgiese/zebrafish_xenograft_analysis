@@ -58,6 +58,11 @@ def get_macrophage_properties_df(summary_key_file, macrophages_path):
         single_movie_props = single_movie_props[single_movie_props['time_point']<= row['t_end']-1]
         single_movie_props = single_movie_props[single_movie_props['time_point']>= row['t_start']-1]
 
+        if "1dpi" in short_name:
+            single_movie_props['fish_id'] = short_name.split("1dpi_")[0] + short_name.split("1dpi_")[1] 
+        else:
+            single_movie_props['fish_id'] = short_name.split("5dpi_")[0] + short_name.split("5dpi_")[1] 
+
 
         if macrophage_props.shape[0]>1:
             macrophage_props = pd.concat([macrophage_props, single_movie_props], ignore_index = True)
