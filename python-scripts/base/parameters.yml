@@ -1,18 +1,12 @@
-
-
 data_folder: "/folder/to/data/"
 key_file_path: "/00_Extra/Details_imaging_data_3D.xls"
 image_file_path_2D: "/03_Preprocessed_Data/01_2D/"
 image_file_path_3D: "/03_Preprocessed_Data/02_3D/"
 output_folder: "/folder/to/output/"
 
-
-
-
 channel_tumor : 0
 channel_macrophages: 1
 channel_vessels: 2
-
 
 # Filters for tumor and vascular segmentation
 
@@ -21,7 +15,6 @@ channel_vessels: 2
 substract_background: "None" # "rolling_ball", "ellipsoid_kernel" or "None" to skip background substraction
 ellipsoid_kernel_size: 5
 ellipsoid_kernel_intensity: 5
-
 
 ## anisotropic Gaussian blur, not that sigma is a scaling factor here, which is multiplied by the pixel size PhysicalSizeX,Y,Z to obtain the "physical" anisotropic sigma
 
@@ -33,13 +26,11 @@ sigma_tumor: 10  # sigma for Gaussian filtering before Otsu thresholding
 thresholding_method: "otsu" # options are "isodata", "li", "mean", "minimum", "niblack", "otsu", "sauvola", "triangle", "yen", "local" or an integer value
 window_size_thresholding: 31 # only applies for local thresholding methods
 
-
 ## segmentation parameters
 skip_experiments: []  
 segmentation_method: "common" # or "Watershed"
 macrophages_small_objects: 350   # physical size of "debry" in microns^3 that will be taken out of macrophage mask
 file_ext : ".tif"
-
 
 # cellpose segmentation
 use_gpu: False
@@ -57,23 +48,11 @@ plot_circularity : True
 flow_threshold : 0.4 # cellpose default is 0.4
 cellprob_threshold: 0.0  # cellpose default is 0.0 , TODO: unused at the moment
 
-
-#############################################################################
-###  Cellpose 3D stitch, only for testing, not used at the moment
-#############################################################################
-
-stitch_threshold: 0.1
-anisotropy: 2.5 # TODO: check impact on segmentation, https://cellpose.readthedocs.io/en/latest/settings.html
-z_axis: 0 # position of z-axis, in the cellpose documentation it is stated "segment list of images x, or 4D array - Z x nchan x Y x X"
-diameter_3D: 30
-min_macrophage_voxels : 100
-
 #############################################################################
 # parameters time series analysis
 #############################################################################
 
 start_time: {'1dpi': 1440, '5dpi' : 6840}
-#end_time:  {'1dpi': '2340', '5dpi' : 7200}
 end_time:  {'1dpi': '2340', '5dpi' : 7800}
 
 # time in minutes, note that 24 *60 min = 1440 min, which is exactly 1 day post injection, while for 5dpi it is actually 4 days + 18 h, meaning 6840 min.
